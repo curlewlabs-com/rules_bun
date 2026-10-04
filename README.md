@@ -8,6 +8,14 @@ exports the resulting files and symlinks.
 This module is an acquisition prototype. It is not published in the Bazel
 Central Registry. It does not provide build/test rules or an execution sandbox.
 
+## Versions
+
+The initial ruleset version is **0.1.0**. The current development toolchain is
+**Bazel 9.2.0**, **Bun 1.3.10**, and **Node 24.21.0**. The pins live in
+[.bazelversion](.bazelversion), [tests/deps.bzl](tests/deps.bzl), and
+[MODULE.bazel](MODULE.bazel). These are the current selections, not a broader
+compatibility guarantee.
+
 ## How this differs from Tomato's rules_bun
 
 [Tomato's rules_bun](https://github.com/tomato-bazel/rules_bun) is MIT licensed
@@ -118,8 +126,7 @@ The integration check acquires real packages, restores their exported payload,
 resolves a workspace dependency, and runs native esbuild with both runtimes. It
 verifies that a workspace-only consumer cannot resolve root tooling, that
 removing the native executable causes failure, and that acquisition rejects a
-changed manifest against a frozen lock or an omitted workspace manifest. The
-local evidence covers macOS arm64; Linux execution remains unverified.
+changed manifest against a frozen lock or an omitted workspace manifest.
 Acquisition needs network access on a cold cache.
 
 ## Licensing and prior work
