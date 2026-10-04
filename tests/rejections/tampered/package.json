@@ -1,0 +1,7 @@
+{
+  "name": "tampered-fixture",
+  "private": true,
+  "dependencies": {
+    "is-number": "7.0.0"
+  }
+}

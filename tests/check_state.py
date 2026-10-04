@@ -201,35 +201,37 @@ def main() -> None:
                 tools,
             )
 
-            # Only installer bytes change: Starlark and repository attributes stay fixed.
-            installer = candidate / "bun/install.mjs"
-            original = installer.read_text()
-            installer.write_text(
-                'throw new Error("Updated installer executed");\n' + original
-            )
-            result = subprocess.run(
-                [*command, "build", "@npm//:files"],
-                cwd=left,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
-            assert (
-                result.returncode != 0 and "Updated installer executed" in result.stderr
-            ), result.stdout + result.stderr
-            installer.write_text(original)
-            export(
-                args.bazel,
-                output,
-                left,
-                staging / "restored-installer",
-                "changed-input",
-                tools,
-            )
-            print(
-                "Verified installer invalidation and recovery without a clean.",
-                flush=True,
-            )
+            # Only script bytes change: Starlark and repository attributes stay fixed.
+            for script in ["install", "plan"]:
+                path = candidate / f"bun/{script}.mjs"
+                original = path.read_text()
+                path.write_text(
+                    f'throw new Error("Updated {script} script executed");\n' + original
+                )
+                result = subprocess.run(
+                    [*command, "build", "@npm//:files"],
+                    cwd=left,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                assert (
+                    result.returncode != 0
+                    and f"Updated {script} script executed" in result.stderr
+                ), result.stdout + result.stderr
+                path.write_text(original)
+                export(
+                    args.bazel,
+                    output,
+                    left,
+                    staging / f"restored-{script}",
+                    "changed-input",
+                    tools,
+                )
+                print(
+                    f"Verified {script} script invalidation and recovery without a clean.",
+                    flush=True,
+                )
 
             # Replace real executable bytes at the same label and path, one at a time.
             for runtime in ["bun", "node"]:

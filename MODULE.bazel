@@ -10,7 +10,7 @@ node.toolchain(node_version = "24.21.0")
 use_repo(node, "nodejs_darwin_amd64", "nodejs_darwin_arm64", "nodejs_linux_amd64", "nodejs_linux_arm64")
 
 tests = use_extension("//tests:deps.bzl", "deps", dev_dependency = True)
-use_repo(tests, "test_bun", "test_lock_mismatch", "test_missing_workspace", "test_npm", "test_workspace_only")
+use_repo(tests, "test_bun", "test_lock_mismatch", "test_missing_workspace", "test_npm", "test_tampered_integrity", "test_unsupported_source", "test_workspace_only")
 
 runtime_updates = use_extension("//tests:runtime_updates.bzl", "runtimes", dev_dependency = True)
 use_repo(runtime_updates, "previous_bun", "previous_node")
