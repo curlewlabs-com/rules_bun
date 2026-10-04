@@ -40,6 +40,8 @@ jobs:
         run: bazel build //bun:api_docs
       - name: Workspace acquisition and rejection cases
         run: python3 tests/check.py
+      - name: Incremental and concurrent acquisition
+        run: python3 tests/check_state.py
       - name: Verify prepared release archive without dev dependencies
         env:
           RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}

@@ -16,38 +16,14 @@ The initial ruleset version is **0.1.0**. The current development toolchain is
 [MODULE.bazel](MODULE.bazel). These are the current selections, not a broader
 compatibility guarantee.
 
-## How this differs from Tomato's rules_bun
+## Related project
 
-[Tomato's rules_bun](https://github.com/tomato-bazel/rules_bun) is MIT licensed
-and already provides frozen Bun installation alongside Bun toolchain and
-execution rules. Its license is suitable for reuse. This is an independent
-implementation focused on acquiring selected workspace dependencies for a
-consumer that restores the installed layout itself.
-
-Compared with Tomato's
-[installation rule at the reviewed revision](https://github.com/tomato-bazel/rules_bun/blob/395372ea3639805131bcc6d63a0be3166c6a3aba/bun/private/install.bzl):
-
-- **Workspace inputs:** Tomato stages the root manifest and lockfile. This rule
-  also accepts workspace manifests and installation inputs at explicit
-  root-relative paths, then selects the consumer's workspace dependencies. This
-  preserves the monorepo layout Bun uses for resolution.
-- **Runtime ownership:** Tomato downloads Bun inside its installation rule. This
-  rule accepts Bazel-acquired Bun and Node binaries from the caller and puts
-  those runtimes on the installer's PATH. Lifecycle scripts that invoke Node
-  therefore use the declared Node runtime.
-- **Exported layout:** Tomato exposes a `node_modules/**` file group. This rule
-  exports regular files throughout the acquired workspace plus a manifest of
-  relative symlinks, executable modes, and content digests. Consumers can
-  restore workspace-local dependencies and native outputs without relying on
-  Bazel globs to follow package links.
-
-These are acquisition requirements, not a claim that this project replaces
-Tomato's broader ruleset. The tradeoff is a separate consumer-side restoration
-step and a deliberately narrow API: explicit workspace directories, text
-installation inputs, and native-host acquisition. See [Consume](#consume) for
-the execution boundary and [Verify](#verify) for the exercised behavior.
-Improvements suitable for Tomato should be considered for upstream contribution;
-maintaining an independent implementation is not itself a goal.
+[Tomato's rules_bun](https://github.com/tomato-bazel/rules_bun) is a useful
+MIT-licensed option providing frozen Bun installation, Bun toolchains, and
+execution rules. This project is an independent implementation focused on
+acquiring selected workspace dependencies with caller-owned Bun and Node
+runtimes, then exporting the installed layout for a consumer to restore.
+See [Consume](#consume) for that boundary.
 
 ## Use
 
@@ -124,6 +100,7 @@ development environment:
 ```sh
 python3 tests/check.py --bazel /path/to/bazel
 python3 tests/check_consumer.py --bazel /path/to/bazel
+python3 tests/check_state.py --bazel /path/to/bazel
 ```
 
 The integration check acquires real packages, restores their exported payload,
@@ -143,9 +120,14 @@ The [integration workflow](.github/workflows/ci.yaml) runs these checks
 on Linux and macOS, on x64 and arm64. Its
 [run history](https://github.com/curlewlabs-com/rules_bun/actions/workflows/ci.yaml)
 records the tested revision and platform results. A platform selection is not a
-promise about other OS releases or runtime versions. Changed installer/runtime
-invalidation and independent concurrent acquisitions still need directed
-regression coverage; readiness is tracked in
+promise about other OS releases or runtime versions.
+
+The state check rebuilds without cleaning after changing lifecycle inputs,
+installer bytes, and real runtime binaries at unchanged paths. It also overlaps
+independent acquisitions at a lifecycle barrier and verifies their private
+state and exported native payloads. These checks exercise the pinned test
+runtimes; they do not establish a broader version compatibility policy.
+Remaining readiness work is tracked in
 [issue #1](https://github.com/curlewlabs-com/rules_bun/issues/1).
 
 ## Licensing and prior work

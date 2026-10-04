@@ -14,12 +14,17 @@ pre-commit run --all-files
 bazel build //bun:api_docs //docs:api
 python3 tests/check.py
 python3 tests/check_consumer.py
+python3 tests/check_state.py
 ```
 
 The archive check packages committed `HEAD`, so commit the candidate before
 using its result as release evidence. The independent consumer README also
 describes verification of a prepared archive. Network access is required for
 cold acquisitions. Avoid concurrent Bazel commands against the same output base.
+The state check uses separate consumer modules and output bases to overlap real acquisitions;
+its lifecycle barrier makes overlap independent of host speed. Its alternate
+runtime pins exist to exercise byte replacement, not to expand supported
+versions.
 
 The `api_docs` target extracts the public repository rule's documentation into
 Bazel's Stardoc-compatible binary proto. It keeps the attribute contract next
