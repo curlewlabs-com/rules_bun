@@ -46,6 +46,9 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: python3 tools/prepare_release.py "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+      # Candidate verification uses a local registry, bypassing the example pin.
+      - name: Exercise the published-release example
+        run: python3 examples/consumer/run.py
 
   pre-commit:
     runs-on: ubuntu-24.04

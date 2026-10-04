@@ -31,6 +31,8 @@ See [Consume](#consume) for that boundary.
 
 Start with the [independent consumer](examples/consumer/README.md) for a
 runnable module using a verified source archive and consumer-owned runtimes.
+Source archives, checksums, and installation snippets are published on the
+[releases page](https://github.com/curlewlabs-com/rules_bun/releases).
 
 Load `bun_install` from `//bun:repositories.bzl` through `use_repo_rule` or your
 module extension. The runnable setup in [MODULE.bazel](MODULE.bazel) and
