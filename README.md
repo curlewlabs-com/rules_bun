@@ -8,6 +8,39 @@ exports the resulting files and symlinks.
 This module is an acquisition prototype. It is not published in the Bazel
 Central Registry. It does not provide build/test rules or an execution sandbox.
 
+## How this differs from Tomato's rules_bun
+
+[Tomato's rules_bun](https://github.com/tomato-bazel/rules_bun) is MIT licensed
+and already provides frozen Bun installation alongside Bun toolchain and
+execution rules. Its license is suitable for reuse. This is an independent
+implementation focused on acquiring selected workspace dependencies for a
+consumer that restores the installed layout itself.
+
+Compared with Tomato's
+[installation rule at the reviewed revision](https://github.com/tomato-bazel/rules_bun/blob/395372ea3639805131bcc6d63a0be3166c6a3aba/bun/private/install.bzl):
+
+- **Workspace inputs:** Tomato stages the root manifest and lockfile. This rule
+  also accepts workspace manifests and installation inputs at explicit
+  root-relative paths, then selects the consumer's workspace dependencies. This
+  preserves the monorepo layout Bun uses for resolution.
+- **Runtime ownership:** Tomato downloads Bun inside its installation rule. This
+  rule accepts Bazel-acquired Bun and Node binaries from the caller and puts
+  those runtimes on the installer's PATH. Lifecycle scripts that invoke Node
+  therefore use the declared Node runtime.
+- **Exported layout:** Tomato exposes a `node_modules/**` file group. This rule
+  exports regular files throughout the acquired workspace plus a manifest of
+  relative symlinks, executable modes, and content digests. Consumers can
+  restore workspace-local dependencies and native outputs without relying on
+  Bazel globs to follow package links.
+
+These are acquisition requirements, not a claim that this project replaces
+Tomato's broader ruleset. The tradeoff is a separate consumer-side restoration
+step and a deliberately narrow API: explicit workspace directories, text
+installation inputs, and native-host acquisition. See [Consume](#consume) for
+the execution boundary and [Verify](#verify) for the exercised behavior.
+Improvements suitable for Tomato should be considered for upstream contribution;
+maintaining an independent implementation is not itself a goal.
+
 ## Use
 
 Load `bun_install` from `//bun:repositories.bzl` through `use_repo_rule` or your
@@ -106,8 +139,6 @@ distinguishes its MIT code from its bundled LGPL libraries. Node's release
 the notices for its bundled libraries.
 
 Bazel's [distribution guidance](https://bazel.build/rules/deploying) governs the
-repository layout. Permissively licensed alternatives include
-[tomato-bazel/rules_bun](https://github.com/tomato-bazel/rules_bun) (MIT) and
-[parkrevil/rules_bun](https://github.com/parkrevil/rules_bun) (Apache-2.0). This
-module focuses on acquisition using caller-supplied runtimes and explicit
-workspace inputs.
+repository layout. In addition to Tomato, permissively licensed prior work
+includes [parkrevil/rules_bun](https://github.com/parkrevil/rules_bun)
+(Apache-2.0).
