@@ -14,7 +14,9 @@ The initial ruleset version is **0.1.0**. The current development toolchain is
 **Bazel 9.2.0**, **Bun 1.3.10**, and **Node 24.21.0**. The pins live in
 [.bazelversion](.bazelversion), [tests/deps.bzl](tests/deps.bzl), and
 [MODULE.bazel](MODULE.bazel). These are the current selections, not a broader
-compatibility guarantee.
+compatibility guarantee. The [compatibility policy](docs/compatibility.md)
+defines the supported baseline, public API, lifecycle/registry boundaries, and
+versioning commitments.
 
 ## Related project
 
@@ -70,6 +72,9 @@ acquisition host. User environment variables and global registry credentials are
 not passed to the installer.
 
 ## Consume
+
+See the [closure format contract](docs/closure-format.md) for field semantics
+and consumer responsibilities.
 
 `@npm_tools//:files` contains the installed regular files and `closure.json`.
 The manifest records installer, input, and runtime SHA-256 digests, selected
