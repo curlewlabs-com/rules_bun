@@ -1,0 +1,13 @@
+{
+  "name": "frozen-bun-example",
+  "private": true,
+  "workspaces": [
+    "examples/workspace"
+  ],
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "trustedDependencies": [
+    "esbuild"
+  ]
+}

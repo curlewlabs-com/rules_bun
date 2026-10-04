@@ -1,0 +1,7 @@
+exports_files([
+    "LICENSE",
+    "README.md",
+    "package.json",
+    "bun.lock",
+    "examples/workspace/package.json",
+])
