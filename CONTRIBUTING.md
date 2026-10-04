@@ -11,7 +11,7 @@ Install `pre-commit==4.3.0`, then run:
 ```sh
 pre-commit install
 pre-commit run --all-files
-bazel build //bun:api_docs
+bazel build //bun:api_docs //docs:api
 python3 tests/check.py
 python3 tests/check_consumer.py
 ```
@@ -24,8 +24,8 @@ cold acquisitions. Avoid concurrent Bazel commands against the same output base.
 The `api_docs` target extracts the public repository rule's documentation into
 Bazel's Stardoc-compatible binary proto. It keeps the attribute contract next
 to its implementation; the README explains the acquisition/execution boundary.
-A rendered documentation site and release documentation bundle are not yet
-configured.
+The `//docs:api` target renders Markdown with Stardoc. Release archives include
+that generated reference at `docs/api.md`; no documentation site is required.
 
 ## Ruleset structure
 
@@ -52,13 +52,11 @@ The adaptations reflect this ruleset's scope:
 
 ## Releases
 
-Public source is not a versioned release. No automatic tagging or publishing
-workflow is configured. Release preparation remains in
-[issue #1](https://github.com/curlewlabs-com/rules_bun/issues/1): use the
-rules-template release workflow as the starting point, verify the source-only
-archive with the external consumer, and have the maintainer approve the
-candidate before creating a release. Preserve MIT licensing and all applicable
-third-party notices when adopting upstream release code.
+Follow [release preparation and approval](docs/releases.md) to produce a
+source-only archive, verify it with the independent consumer, and review the
+platform evidence. Approved fixed version tags trigger the rules-template
+reusable workflow's draft-release stage. Publishing the draft remains a
+separate explicit maintainer decision.
 
 BCR metadata, presubmit configuration, and publishing automation belong to the
 separate future [issue #4](https://github.com/curlewlabs-com/rules_bun/issues/4).
