@@ -51,6 +51,9 @@ maintaining an independent implementation is not itself a goal.
 
 ## Use
 
+Start with the [independent consumer](examples/consumer/README.md) for a
+runnable module using a verified source archive and consumer-owned runtimes.
+
 Load `bun_install` from `//bun:repositories.bzl` through `use_repo_rule` or your
 module extension. The runnable setup in [MODULE.bazel](MODULE.bazel) and
 [tests/deps.bzl](tests/deps.bzl) acquires Bun with Bazel's `http_archive` and
@@ -120,6 +123,7 @@ development environment:
 
 ```sh
 python3 tests/check.py --bazel /path/to/bazel
+python3 tests/check_consumer.py --bazel /path/to/bazel
 ```
 
 The integration check acquires real packages, restores their exported payload,
@@ -128,6 +132,21 @@ verifies that a workspace-only consumer cannot resolve root tooling, that
 removing the native executable causes failure, and that acquisition rejects a
 changed manifest against a frozen lock or an omitted workspace manifest.
 Acquisition needs network access on a cold cache.
+
+The archive check exercises an independent module with development dependencies
+disabled, lifecycle output, native execution after removing acquisition state,
+and corrupt/missing payload rejection. It packages committed `HEAD`; commit
+candidate changes before using it as evidence. See the consumer README for
+testing a prepared source archive.
+
+The [integration workflow](.github/workflows/ci.yaml) runs these checks
+on Linux and macOS, on x64 and arm64. Its
+[run history](https://github.com/curlewlabs-com/rules_bun/actions/workflows/ci.yaml)
+records the tested revision and platform results. A platform selection is not a
+promise about other OS releases or runtime versions. Changed installer/runtime
+invalidation and independent concurrent acquisitions still need directed
+regression coverage; readiness is tracked in
+[issue #1](https://github.com/curlewlabs-com/rules_bun/issues/1).
 
 ## Licensing and prior work
 

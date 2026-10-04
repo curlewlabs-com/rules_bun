@@ -2,3 +2,9 @@ exports_files([
     "repositories.bzl",
     "install.mjs",
 ])
+
+starlark_doc_extract(
+    name = "api_docs",
+    src = "repositories.bzl",
+    symbol_names = ["bun_install"],
+)

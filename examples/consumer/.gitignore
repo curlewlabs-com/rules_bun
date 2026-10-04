@@ -1,0 +1,4 @@
+/bazel-*
+/node_modules/
+/lifecycle.json
+/MODULE.bazel.lock

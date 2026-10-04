@@ -1,0 +1,13 @@
+{
+  "name": "independent-consumer",
+  "private": true,
+  "dependencies": {
+    "esbuild": "0.28.2"
+  },
+  "trustedDependencies": [
+    "esbuild"
+  ],
+  "scripts": {
+    "postinstall": "node lifecycle.cjs"
+  }
+}

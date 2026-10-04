@@ -1,0 +1,23 @@
+exports_files([
+    "package.json",
+    "bun.lock",
+    "lifecycle.cjs",
+])
+
+filegroup(
+    name = "bun",
+    srcs = ["@consumer_bun//:bun"],
+)
+
+[
+    filegroup(
+        name = "node_" + host,
+        srcs = ["@nodejs_" + host + "//:bin/nodejs/bin/node"],
+    )
+    for host in [
+        "darwin_amd64",
+        "darwin_arm64",
+        "linux_amd64",
+        "linux_arm64",
+    ]
+]
