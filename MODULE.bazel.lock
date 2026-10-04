@@ -342,6 +342,39 @@
         }
       }
     },
+    "//tests:runtime_updates.bzl%runtimes": {
+      "os:osx,arch:aarch64": {
+        "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
+        "usagesDigest": "wzmCpjqZHtbOwXga6IuFnsJ9lYcYq9+7F+5ir0OoxLE=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "previous_bun": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://github.com/oven-sh/bun/releases/download/bun-v1.3.9/bun-darwin-aarch64.zip"
+              ],
+              "sha256": "cde6a4edf19cf64909158fa5a464a12026fd7f0d79a4a950c10cf0af04266d85",
+              "strip_prefix": "bun-darwin-aarch64",
+              "build_file_content": "exports_files([\"bun\"])"
+            }
+          },
+          "previous_node": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://nodejs.org/dist/v24.13.0/node-v24.13.0-darwin-arm64.tar.gz"
+              ],
+              "sha256": "d595961e563fcae057d4a0fb992f175a54d97fcc4a14dc2d474d92ddeea3b9f8",
+              "strip_prefix": "node-v24.13.0-darwin-arm64",
+              "build_file_content": "exports_files([\"bin/node\"])"
+            }
+          }
+        }
+      }
+    },
     "@@pybind11_bazel+//:internal_configure.bzl%internal_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "NRXra7941UfmNUyIxnLt82V5hULluVGL2nBsijTl4j4=",

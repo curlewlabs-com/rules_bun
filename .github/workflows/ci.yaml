@@ -39,6 +39,8 @@ jobs:
         run: bazel build //bun:api_docs
       - name: Workspace acquisition and rejection cases
         run: python3 tests/check.py
+      - name: Incremental and concurrent acquisition
+        run: python3 tests/check_state.py
       - name: Packaged-source consumer without dev dependencies
         run: python3 tests/check_consumer.py
 

@@ -1,0 +1,30 @@
+module(name = "acquisition_state_consumer")
+
+bazel_dep(name = "curlewlabs_rules_bun", version = "0.1.0")
+
+# check_state.py stages sibling directories so mutations never touch the checkout.
+local_path_override(
+    module_name = "curlewlabs_rules_bun",
+    path = "../rules_bun",
+)
+
+local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "local_repository")
+
+local_repository(
+    name = "state_tools",
+    path = "../tools",
+)
+
+bun_install = use_repo_rule("@curlewlabs_rules_bun//bun:repositories.bzl", "bun_install")
+
+bun_install(
+    name = "npm",
+    bun = "@state_tools//:bun",
+    inputs = {
+        "//:lifecycle.cjs": "lifecycle.cjs",
+        "//:state.json": "state.json",
+    },
+    lock = "//:bun.lock",
+    node = "@state_tools//:node",
+    package_json = "//:package.json",
+)

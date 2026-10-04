@@ -1,0 +1,25 @@
+exports_files([
+    "package.json",
+    "bun.lock",
+    "lifecycle.cjs",
+    "state.json",
+])
+
+filegroup(
+    name = "bun",
+    srcs = ["@state_tools//:bun"],
+)
+
+# The consumer export helper selects a host-specific public runtime target.
+[
+    filegroup(
+        name = "node_" + host,
+        srcs = ["@state_tools//:node"],
+    )
+    for host in [
+        "darwin_amd64",
+        "darwin_arm64",
+        "linux_amd64",
+        "linux_arm64",
+    ]
+]
