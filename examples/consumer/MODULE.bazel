@@ -1,0 +1,20 @@
+module(name = "rules_bun_consumer")
+
+bazel_dep(name = "curlewlabs_rules_bun", version = "0.1.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.5")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "24.21.0")
+use_repo(node, "nodejs_darwin_amd64", "nodejs_darwin_arm64", "nodejs_linux_amd64", "nodejs_linux_arm64")
+
+acquire = use_extension("//:deps.bzl", "deps")
+use_repo(acquire, "consumer_bun", "npm")
+
+# Until a versioned release exists, verify a fixed public source snapshot.
+archive_override(
+    module_name = "curlewlabs_rules_bun",
+    integrity = "sha256-mILH+K6N7H9DmjocX1I+zUrbRHkv/zTifiAjyOWSJTM=",
+    strip_prefix = "rules_bun-c0f2a2aa30ba9888e87863ac3aff1a8fa33790f4",
+    type = "tar.gz",
+    urls = ["https://codeload.github.com/curlewlabs-com/rules_bun/tar.gz/c0f2a2aa30ba9888e87863ac3aff1a8fa33790f4"],
+)

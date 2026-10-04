@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}-${{ github.ref_name == 'main' && github.run_id || 'pr' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+jobs:
+  integration:
+    name: Integration (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Standard public-repository runners avoid metered larger runners.
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          # Cold acquisitions are part of the evidence; no cache storage is needed.
+          bazelisk-cache: false
+          disk-cache: false
+          repository-cache: false
+          cache-save: false
+      - name: Extract public API documentation
+        run: bazel build //bun:api_docs
+      - name: Workspace acquisition and rejection cases
+        run: python3 tests/check.py
+      - name: Packaged-source consumer without dev dependencies
+        run: python3 tests/check_consumer.py
+
+  pre-commit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - run: python3 -m pip install pre-commit==4.3.0
+      - run: pre-commit run --all-files
+
+  conclusion:
+    needs: [integration, pre-commit]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Require every integration and lint job to pass
+        env:
+          INTEGRATION: ${{ needs.integration.result }}
+          LINT: ${{ needs.pre-commit.result }}
+        run: test "$INTEGRATION" = success && test "$LINT" = success
