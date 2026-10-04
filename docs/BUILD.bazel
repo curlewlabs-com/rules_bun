@@ -1,0 +1,9 @@
+load("@stardoc//stardoc:stardoc.bzl", "stardoc")
+
+stardoc(
+    name = "api",
+    out = "api.md",
+    input = "//bun:repositories.bzl",
+    stamp = 0,
+    symbol_names = ["bun_install"],
+)

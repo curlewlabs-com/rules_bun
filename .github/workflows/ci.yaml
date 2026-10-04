@@ -3,9 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+  # Stacked pull requests need the same required checks before they reach main.
   pull_request:
-    branches: [main]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -41,8 +42,10 @@ jobs:
         run: python3 tests/check.py
       - name: Incremental and concurrent acquisition
         run: python3 tests/check_state.py
-      - name: Packaged-source consumer without dev dependencies
-        run: python3 tests/check_consumer.py
+      - name: Verify prepared release archive without dev dependencies
+        env:
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: python3 tools/prepare_release.py "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
 
   pre-commit:
     runs-on: ubuntu-24.04

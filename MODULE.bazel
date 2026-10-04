@@ -14,3 +14,9 @@ use_repo(tests, "test_bun", "test_lock_mismatch", "test_missing_workspace", "tes
 
 runtime_updates = use_extension("//tests:runtime_updates.bzl", "runtimes", dev_dependency = True)
 use_repo(runtime_updates, "previous_bun", "previous_node")
+
+bazel_dep(name = "stardoc", version = "0.8.1", dev_dependency = True)
+
+# Stardoc's older protobuf default compiles protoc with the host C++ toolchain.
+# Prebuilt protoc keeps documentation generation independent of Xcode/SDK headers.
+bazel_dep(name = "protobuf", version = "36.2", dev_dependency = True)
