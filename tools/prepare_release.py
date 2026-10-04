@@ -35,9 +35,18 @@ def main() -> None:
         stdout=sys.stderr,
     )
     command = [args.bazel, "--ignore_all_rc_files"]
+    # Root metadata does not require evaluating the development extensions.
     module = json.loads(
         subprocess.check_output(
-            [*command, "mod", "graph", "--output=json", "--depth=1"],
+            [
+                *command,
+                "mod",
+                "graph",
+                "--output=json",
+                "--depth=1",
+                "--ignore_dev_dependency",
+                "--lockfile_mode=off",
+            ],
             cwd=root,
             text=True,
         )
