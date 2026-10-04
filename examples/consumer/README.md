@@ -10,11 +10,12 @@ Use Bazelisk or the Bazel release in `.bazelversion`. Python is needed only to
 orchestrate the demo. Bun and Node are downloaded and verified by Bazel; an
 ambient installation is unnecessary. Acquisition needs network access.
 
-`MODULE.bazel` depends on the ruleset as a separate module. Until a versioned
-release is available, its `archive_override` selects a fixed public source
-snapshot and verifies its integrity. The consumer owns its Node dependency,
-Bun archive selection, manifests, lockfile, and lifecycle inputs. It does not
-load the ruleset's development extension or depend on its development tools.
+`MODULE.bazel` depends on the ruleset as a separate module. Its
+`archive_override` selects a published release archive and verifies its
+integrity until the module is available through BCR. The consumer owns its Node
+dependency, Bun archive selection, manifests, lockfile, and lifecycle inputs.
+It does not load the ruleset's development extension or depend on its
+development tools.
 
 `run.py` builds the public `@npm//:files` target and copies only its exported
 files, plus the separately declared runtimes, into a temporary directory.
@@ -50,7 +51,7 @@ Installation source/configuration files must also appear in `bun_install.inputs`
 ## Troubleshooting
 
 - An archive integrity failure means the downloaded bytes do not match the
-  selected snapshot. Verify the intended source before changing the integrity.
+  selected release. Verify the intended source before changing the integrity.
 - A frozen-lock error means a manifest and the committed lock disagree.
   Regenerate deliberately using the selected Bun release.
 - A missing lifecycle input must be declared in `inputs`; host files and
