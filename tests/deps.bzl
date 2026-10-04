@@ -8,7 +8,7 @@ _BUN = {
     "mac os x/x86_64": ("darwin-x64", "c1d90bf6140f20e572c473065dc6b37a4b036349b5e9e4133779cc642ad94323", "@nodejs_darwin_amd64//:bin/nodejs/bin/node"),
     "linux/aarch64": ("linux-aarch64", "fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3", "@nodejs_linux_arm64//:bin/nodejs/bin/node"),
     # Baseline avoids requiring AVX2 merely to acquire packages on x86 hosts.
-    "linux/x86_64": ("linux-x64-baseline", "41201a8c5ee74a9dcbb1ce25a1104f1f929838b57a845aa78d98379b0ce7cde2", "@nodejs_linux_amd64//:bin/nodejs/bin/node"),
+    "linux/amd64": ("linux-x64-baseline", "41201a8c5ee74a9dcbb1ce25a1104f1f929838b57a845aa78d98379b0ce7cde2", "@nodejs_linux_amd64//:bin/nodejs/bin/node"),
 }
 
 def _deps(ctx):
