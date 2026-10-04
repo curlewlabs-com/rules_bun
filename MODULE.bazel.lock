@@ -264,8 +264,8 @@
   "moduleExtensions": {
     "//tests:deps.bzl%deps": {
       "os:linux,arch:amd64": {
-        "bzlTransitiveDigest": "lg8qtjV09HScyykkBTWuzgv1IVvUTHAvBQJEpdtAVkQ=",
-        "usagesDigest": "S7sv9VgOr9nIF5lJ4em2/8fprUIapS3IdOBtB54wBwQ=",
+        "bzlTransitiveDigest": "x1phUPIej0b3zzdhOkfEQSb/pe7/7KYBpvoIX3r16ns=",
+        "usagesDigest": "L4rqnd1ENL4zkTQZRB8yA8rFZ2IJff16Ziw8eBWPTYo=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
@@ -429,7 +429,7 @@
     "//tests:runtime_updates.bzl%runtimes": {
       "os:linux,arch:amd64": {
         "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
-        "usagesDigest": "wzmCpjqZHtbOwXga6IuFnsJ9lYcYq9+7F+5ir0OoxLE=",
+        "usagesDigest": "NFHi6VEqAgvW3VOPGdDZ9ztZ6Xq3+yAbzISZu4qpZOY=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],

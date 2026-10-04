@@ -10,7 +10,7 @@ Central Registry. It does not provide build/test rules or an execution sandbox.
 
 ## Versions
 
-The initial ruleset version is **0.1.0**. The current development toolchain is
+The current ruleset version is **0.2.0**. The current development toolchain is
 **Bazel 9.2.0**, **Bun 1.3.10**, and **Node 24.21.0**. The pins live in
 [.bazelversion](.bazelversion), [tests/deps.bzl](tests/deps.bzl), and
 [MODULE.bazel](MODULE.bazel). These are the current selections, not a broader
