@@ -4,6 +4,18 @@ Use the Bazel release in `.bazelversion`, Python, and Git. The integration
 checks download their own Bun and Node runtimes. Keep changes on a branch and
 open a pull request with the behavior change and verification evidence.
 
+## Maintainership and review
+
+Curlew Labs maintains this project. Jeffrey Wall
+([jeffwall-curlewlabs](https://github.com/jeffwall-curlewlabs)) reviews changes
+and approves releases. Use issues for reproducible defects and proposals;
+use [private vulnerability reporting](SECURITY.md) for security concerns.
+
+Changes land through pull requests with passing CI and maintainer review.
+Public API changes must follow the [compatibility policy](docs/compatibility.md)
+and update consumer documentation and behavior coverage in the same change.
+Fixed version tags and published release artifacts must not be replaced.
+
 ## Local checks
 
 Install `pre-commit==4.3.0`, then run:
