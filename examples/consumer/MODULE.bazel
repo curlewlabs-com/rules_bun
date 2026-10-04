@@ -13,8 +13,8 @@ use_repo(acquire, "consumer_bun", "npm")
 # Pin the reviewed release bytes until the module is available through BCR.
 archive_override(
     module_name = "curlewlabs_rules_bun",
-    integrity = "sha256-n5ShxTw4UOsJXiRcBz1WjhBh/rQOYFHqShv+CTGZC7Q=",
-    strip_prefix = "rules_bun-0.1.0",
+    integrity = "sha256-2sAQsWO5JdHz1YxaLY90kkHX8hnzPEh8krm5aaAIXqY=",
+    strip_prefix = "rules_bun-0.2.0",
     type = "tar.gz",
-    urls = ["https://github.com/curlewlabs-com/rules_bun/releases/download/v0.1.0/rules_bun-0.1.0.tar.gz"],
+    urls = ["https://github.com/curlewlabs-com/rules_bun/releases/download/v0.2.0/rules_bun-0.2.0.tar.gz"],
 )
