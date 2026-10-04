@@ -14,6 +14,7 @@ are lowercase hexadecimal digests of the referenced bytes.
 | --- | --- |
 | `format` | Format identifier; reject an unsupported value before restoration. |
 | `installer` | SHA-256 of the installer JavaScript used for acquisition. |
+| `planner` | SHA-256 of the JavaScript that lists the lock's registry tarballs. |
 | `tools` | Object with `bun` and `node` SHA-256 values for the acquired executables. |
 | `inputs` | Object mapping declared workspace-relative input paths to their SHA-256 values. |
 | `workspaces` | Selected workspace directories; `.` selects the root dependencies. |

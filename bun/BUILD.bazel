@@ -1,6 +1,7 @@
 exports_files([
     "repositories.bzl",
     "install.mjs",
+    "plan.mjs",
 ])
 
 starlark_doc_extract(

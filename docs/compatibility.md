@@ -50,16 +50,20 @@ or native compiler toolchain. Node-invoking scripts receive the declared Node
 runtime. The installer verifies that declared input bytes remain unchanged.
 A lifecycle script requiring other tools must not assume they are on PATH.
 
-Acquisition is network-enabled and unsandboxed. A private HOME, temporary
+Bazel downloads every locked package tarball against its integrity before
+Bun runs, and Bun installs only from a loopback registry serving those files.
+Only default-registry lock entries with an integrity value are supported; other
+sources fail acquisition. Registry settings in declared inputs do not redirect
+package downloads; use Bazel's downloader configuration for a mirror.
+Acquisition is otherwise unsandboxed. A private HOME, temporary
 directory, and package cache prevent ordinary state reuse; they do not isolate
 malicious packages from the host. Only acquire manifests, inputs, and packages
 that are trusted to execute on that host. See [SECURITY.md](../SECURITY.md).
 
 Authenticated private registries are not supported by the public API. Ambient
 credentials and user environment variables are not forwarded to Bun, and there
-is no secret-input or credential-provider attribute. Non-secret Bun registry
-configuration may be supplied through declared text inputs. Do not put tokens
-or passwords in those inputs: they become part of the exported payload and
+is no secret-input or credential-provider attribute. Do not put tokens
+or passwords in declared inputs: they become part of the exported payload and
 may also appear in repository state or diagnostics. There is no credential
 redaction guarantee. Supporting authenticated registries requires a separate
 design that addresses both acquisition and exported-artifact exposure.
@@ -68,7 +72,9 @@ design that addresses both acquisition and exported-artifact exposure.
 
 Invalid input layouts, unsupported workspace selections, frozen-lock
 disagreement, missing declared manifests, runtime/installer failures, and
-installation timeouts fail repository acquisition. There is no unlocked
+installation timeouts fail repository acquisition. So do a lock entry outside
+the default registry, a tarball whose bytes disagree with its locked integrity,
+and an installer request for anything other than a listed tarball. There is no unlocked
 fallback install. An installer that modifies a declared
 input fails acquisition. Absolute, escaping, or dangling package links, nested Bazel
 package boundaries, and unsupported filesystem entries also fail acquisition.

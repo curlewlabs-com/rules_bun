@@ -264,7 +264,7 @@
   "moduleExtensions": {
     "//tests:deps.bzl%deps": {
       "os:linux,arch:amd64": {
-        "bzlTransitiveDigest": "a0kzLUcnj5sQzXsp/r8G47uialX5FYfI2iqR4CyEzDI=",
+        "bzlTransitiveDigest": "lg8qtjV09HScyykkBTWuzgv1IVvUTHAvBQJEpdtAVkQ=",
         "usagesDigest": "S7sv9VgOr9nIF5lJ4em2/8fprUIapS3IdOBtB54wBwQ=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -322,6 +322,24 @@
               "inputs": {
                 "@@//:examples/workspace/package.json": "examples/workspace/package.json"
               }
+            }
+          },
+          "test_tampered_integrity": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_linux_amd64//:bin/nodejs/bin/node",
+              "package_json": "@@//tests:rejections/tampered/package.json",
+              "lock": "@@//tests:rejections/tampered/bun.lock"
+            }
+          },
+          "test_unsupported_source": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_linux_amd64//:bin/nodejs/bin/node",
+              "package_json": "@@//tests:rejections/unsupported/package.json",
+              "lock": "@@//tests:rejections/unsupported/bun.lock"
             }
           },
           "test_missing_workspace": {
@@ -409,6 +427,37 @@
       }
     },
     "//tests:runtime_updates.bzl%runtimes": {
+      "os:linux,arch:amd64": {
+        "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
+        "usagesDigest": "wzmCpjqZHtbOwXga6IuFnsJ9lYcYq9+7F+5ir0OoxLE=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "previous_bun": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://github.com/oven-sh/bun/releases/download/bun-v1.3.9/bun-linux-x64-baseline.zip"
+              ],
+              "sha256": "104d4d037f4b35e10215c0507e1779691f39c57bd91ddeefe11cad781e3fc4b9",
+              "strip_prefix": "bun-linux-x64-baseline",
+              "build_file_content": "exports_files([\"bun\"])"
+            }
+          },
+          "previous_node": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://nodejs.org/dist/v24.13.0/node-v24.13.0-linux-x64.tar.gz"
+              ],
+              "sha256": "6223aad1a81f9d1e7b682c59d12e2de233f7b4c37475cd40d1c89c42b737ffa8",
+              "strip_prefix": "node-v24.13.0-linux-x64",
+              "build_file_content": "exports_files([\"bin/node\"])"
+            }
+          }
+        }
+      },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
         "usagesDigest": "wzmCpjqZHtbOwXga6IuFnsJ9lYcYq9+7F+5ir0OoxLE=",

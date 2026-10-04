@@ -1,5 +1,9 @@
 exports_files([
     "deps.bzl",
     "mismatched.package.json",
+    "rejections/tampered/bun.lock",
+    "rejections/tampered/package.json",
+    "rejections/unsupported/bun.lock",
+    "rejections/unsupported/package.json",
     "verify.mjs",
 ])

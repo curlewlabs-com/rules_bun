@@ -44,8 +44,11 @@ def main() -> None:
         )
     # A successful fallback install would silently accept undeclared inputs.
     for repository_name, diagnostic in [
-        ("test_lock_mismatch", "lockfile had changes, but lockfile is frozen"),
+        # Offline, a manifest the lock does not satisfy asks for unlocked metadata.
+        ("test_lock_mismatch", "Installation reached outside the locked tarballs"),
         ("test_missing_workspace", "Missing declared workspace manifest"),
+        ("test_tampered_integrity", "Checksum was"),
+        ("test_unsupported_source", "Unsupported lock entry"),
     ]:
         result = subprocess.run(
             [*command, "build", f"@{repository_name}//:files"],

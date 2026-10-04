@@ -1,16 +1,20 @@
 import { createHash } from "node:crypto";
 import {
   chmodSync,
+  createReadStream,
   lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   readlinkSync,
   realpathSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
+import { createServer } from "node:http";
+import { createServer as createSocketServer } from "node:net";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 const repository = resolve(process.argv[2]);
 const workspace = join(repository, "workspace");
@@ -60,36 +64,92 @@ for (const directory of ["home", "tmp", "cache"])
   mkdirSync(join(repository, "scratch", directory), { recursive: true });
 const bun = join(repository, "tools", "bun");
 const node = join(repository, "tools", "node");
-const result = spawnSync(
-  bun,
-  [
-    "install",
-    "--frozen-lockfile",
-    "--no-progress",
-    "--backend=copyfile",
-    ...request.workspaces.flatMap((p) => [
-      "--filter",
-      p === "." ? "./" : `./${p}`,
-    ]),
-  ],
-  {
-    cwd: workspace,
-    stdio: "inherit",
-    env: {
-      PATH: join(repository, "tools"),
-      HOME: join(repository, "scratch", "home"),
-      TMPDIR: join(repository, "scratch", "tmp"),
-      BUN_INSTALL_CACHE_DIR: join(repository, "scratch", "cache"),
-      CI: "1",
-      NO_COLOR: "1",
-    },
-  },
+
+// Bun fetches only the tarballs Bazel already downloaded and verified.
+const registry = join(repository, "registry");
+const planned = new Set(
+  JSON.parse(readFileSync(join(repository, "tarballs.json"), "utf8")).map(
+    (tarball) => tarball.path,
+  ),
 );
-if (result.error) throw result.error;
-if (result.status !== 0)
+const unplanned = [];
+const server = createServer((incoming, response) => {
+  const path = decodeURIComponent(
+    new URL(incoming.url, "http://registry").pathname,
+  ).slice(1);
+  if (incoming.method !== "GET" || !planned.has(path)) {
+    unplanned.push(`${incoming.method} ${incoming.url}`);
+    response.writeHead(404).end();
+    return;
+  }
+  response.writeHead(200, { "content-type": "application/octet-stream" });
+  createReadStream(join(registry, path)).pipe(response);
+});
+// Proxied traffic is the installer's other route out; refuse and record it.
+const proxied = [];
+const proxy = createSocketServer((socket) => {
+  proxied.push(socket.remoteAddress);
+  socket.destroy();
+});
+const listen = (target) =>
+  new Promise((done, failed) => {
+    target.once("error", failed);
+    target.listen(0, "127.0.0.1", () => done(target.address().port));
+  });
+const registryPort = await listen(server);
+const proxyAddress = `http://127.0.0.1:${await listen(proxy)}`;
+let status, signal;
+try {
+  ({ status, signal } = await new Promise((done, failed) => {
+    const child = spawn(
+      bun,
+      [
+        "install",
+        "--frozen-lockfile",
+        "--no-progress",
+        "--backend=copyfile",
+        ...request.workspaces.flatMap((p) => [
+          "--filter",
+          p === "." ? "./" : `./${p}`,
+        ]),
+      ],
+      {
+        cwd: workspace,
+        stdio: "inherit",
+        env: {
+          PATH: join(repository, "tools"),
+          HOME: join(repository, "scratch", "home"),
+          TMPDIR: join(repository, "scratch", "tmp"),
+          BUN_INSTALL_CACHE_DIR: join(repository, "scratch", "cache"),
+          BUN_CONFIG_REGISTRY: `http://127.0.0.1:${registryPort}/`,
+          HTTP_PROXY: proxyAddress,
+          HTTPS_PROXY: proxyAddress,
+          http_proxy: proxyAddress,
+          https_proxy: proxyAddress,
+          NO_PROXY: "127.0.0.1",
+          no_proxy: "127.0.0.1",
+          CI: "1",
+          NO_COLOR: "1",
+        },
+      },
+    );
+    child.once("error", failed);
+    child.once("close", (code, killed) => done({ status: code, signal: killed }));
+  }));
+} finally {
+  server.close();
+  proxy.close();
+}
+// Checked first: an install that also failed usually failed because of it, and
+// one that survived a refused request still reached outside its inputs.
+if (unplanned.length || proxied.length)
   throw new Error(
-    `bun install failed: status=${result.status}, signal=${result.signal}`,
+    `Installation reached outside the locked tarballs: ${JSON.stringify({ unplanned, proxied, status, signal })}`,
   );
+if (status !== 0)
+  throw new Error(`bun install failed: status=${status}, signal=${signal}`);
+// The verified tarballs stay in Bazel's repository cache, not in every closure.
+rmSync(registry, { recursive: true, force: true });
 for (const [path, hash] of Object.entries(before)) {
   if (digest(join(workspace, path)) !== hash)
     throw new Error(`Installer modified declared input: ${path}`);
@@ -142,6 +202,7 @@ writeFileSync(
     {
       format: 1,
       installer: digest(import.meta.filename),
+      planner: digest(join(import.meta.dirname, "plan.mjs")),
       tools: { bun: digest(bun), node: digest(node) },
       inputs: before,
       workspaces: request.workspaces,

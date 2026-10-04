@@ -50,6 +50,24 @@ def _deps(ctx):
         lock = "//:bun.lock",
         inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
     )
+
+    # Bazel must refuse tarball bytes that disagree with the locked integrity.
+    bun_install(
+        name = "test_tampered_integrity",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//tests:rejections/tampered/package.json",
+        lock = "//tests:rejections/tampered/bun.lock",
+    )
+
+    # A source outside the default registry would be fetched outside Bazel.
+    bun_install(
+        name = "test_unsupported_source",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//tests:rejections/unsupported/package.json",
+        lock = "//tests:rejections/unsupported/bun.lock",
+    )
     bun_install(
         name = "test_missing_workspace",
         bun = "@test_bun//:bun",

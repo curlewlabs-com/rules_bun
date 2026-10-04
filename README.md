@@ -64,6 +64,16 @@ with root-relative destinations. Bun reads the original manifests and committed
 lock; the rule does not translate either format. Runtime execution must include
 separately declared workspace sources when packages link to local code.
 
+Package bytes come from Bazel's downloader rather than from Bun. The declared
+Bun first reads the committed lock with its own parser and lists the
+default-registry tarballs the acquisition host can install. Bazel downloads each
+one against its locked integrity and keeps it in the repository cache, so later
+acquisitions on that host reuse the verified file instead of downloading it
+again. Bun then installs from a loopback registry that serves exactly those
+tarballs. Proxied traffic during installation is refused, and any request
+outside the listed tarballs fails acquisition. Lock entries from other sources,
+such as tarball URLs, Git, or another registry, are rejected.
+
 Acquisition has a private HOME, temporary directory, and package cache. Its PATH
 contains the declared Bun and Node. It runs Bun's frozen installer with copying
 instead of shared-cache hardlinks, retaining native optional packages and
@@ -94,8 +104,10 @@ package execution under Node and Bun.
 
 Regular files are made read-only. Directories remain writable for Bazel's
 repository management; an executor must supply its own read-only input boundary.
-Acquisition is network-enabled. Consumer actions must disable auto-install and
-supply their own qualified runtime, network policy, and execution identity. The
+Bazel's downloader is acquisition's intended network path; a lifecycle program
+that ignores proxy settings is not contained. Consumer actions must disable
+auto-install and supply their own qualified runtime, network policy, and
+execution identity. The
 content manifest is not a complete execution-platform identity, and this rule
 alone does not establish hermeticity or qualify reusable action results.
 
@@ -114,8 +126,10 @@ The integration check acquires real packages, restores their exported payload,
 resolves a workspace dependency, and runs native esbuild with both runtimes. It
 verifies that a workspace-only consumer cannot resolve root tooling, that
 removing the native executable causes failure, and that acquisition rejects a
-changed manifest against a frozen lock or an omitted workspace manifest.
-Acquisition needs network access on a cold cache.
+manifest the lock does not satisfy, an omitted workspace manifest, a tarball
+whose bytes disagree with its locked integrity, and a lock entry from a source
+other than the default registry. Acquisition needs network access on a cold
+repository cache.
 
 The archive check exercises an independent module with development dependencies
 disabled, lifecycle output, native execution after removing acquisition state,
