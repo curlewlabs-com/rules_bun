@@ -62,6 +62,13 @@ exports_files(["closure.json"])
 filegroup(name = "files", srcs = %s + ["closure.json"])
 """ % repr(files), executable = False)
 
+    # The runtime links point into this output base's other repositories, and the
+    # private package cache duplicates the installed tree. Neither is an output,
+    # and a repository Bazel keeps for other workspaces must not carry either.
+    ctx.delete("tools")
+    ctx.delete("scratch")
+    return ctx.repo_metadata(reproducible = ctx.attr.reproducible)
+
 bun_install = repository_rule(
     implementation = _bun_install_impl,
     attrs = {
@@ -72,6 +79,7 @@ bun_install = repository_rule(
         "inputs": attr.label_keyed_string_dict(allow_files = True, doc = "Workspace manifests and install configuration mapped to root-relative destinations."),
         "workspaces": attr.string_list(default = ["."], doc = "Exact workspace directories selected for this consumer; '.' selects root dependencies."),
         "timeout": attr.int(default = 600, doc = "Acquisition timeout in seconds, including lifecycle scripts."),
+        "reproducible": attr.bool(default = False, doc = "Declare to Bazel that acquiring these inputs again would produce the same repository, so it may reuse the result from its repo contents cache in other workspaces and output bases instead of installing again. Set it only when every lifecycle output depends on the declared inputs alone, not on the repository's absolute path, the time, or other host state."),
         "_installer": attr.label(default = Label("//bun:install.mjs")),
         "_planner": attr.label(default = Label("//bun:plan.mjs")),
     },

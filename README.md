@@ -56,6 +56,13 @@ The runtime attributes must identify source files in acquired repositories, not
 aliases or action-generated executables. Select binaries for the acquisition
 host; this rule does not cross-install packages for another platform.
 
+Set `reproducible = True` to let Bazel reuse an acquisition from its repo
+contents cache in other workspaces and output bases instead of installing again.
+It declares the repository a function of its declared inputs alone, so leave it
+off when a lifecycle script writes the repository's absolute path, the time, or
+other host state into its output. Either way, the rule removes its private
+runtime links and package cache once the closure is recorded.
+
 Declare every root workspace manifest even when selecting only one consumer.
 Workspace paths must be explicit directories in the root manifest: workspace
 globs are deliberately unsupported. `inputs` also accepts text installation
@@ -146,7 +153,9 @@ promise about other OS releases or runtime versions.
 The state check rebuilds without cleaning after changing lifecycle inputs,
 installer bytes, and real runtime binaries at unchanged paths. It also overlaps
 independent acquisitions at a lifecycle barrier and verifies their private
-state and exported native payloads. These checks exercise the pinned test
+state and exported native payloads. A reproducible acquisition must be reused
+by a second workspace sharing the repository cache without running its
+lifecycle, and must run again once an input changes. These checks exercise the pinned test
 runtimes; they do not establish a broader version compatibility policy.
 Remaining readiness work is tracked in
 [issue #1](https://github.com/curlewlabs-com/rules_bun/issues/1).
