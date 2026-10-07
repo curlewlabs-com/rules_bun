@@ -1,8 +1,30 @@
 """Exercise the repository rule with real packages and relocated consumers."""
 
 import argparse
+import platform
 import subprocess
 from pathlib import Path
+
+
+def runtimes(command: list[str], root: Path) -> list[Path]:
+    """The Node and Bun the test repositories declare, as a consumer selects them."""
+    os_name = {"Darwin": "darwin", "Linux": "linux"}[platform.system()]
+    arch = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "amd64"}[platform.machine()]
+    labels = [f"@nodejs_{os_name}_{arch}//:bin/nodejs/bin/node", "@test_bun//:bun"]
+    subprocess.run([*command, "build", *labels], cwd=root, check=True)
+    execution_root = subprocess.check_output(
+        [*command, "info", "execution_root"], cwd=root, text=True
+    ).strip()
+    # Resolved now: a later build replaces the execution root's links with its own.
+    return [
+        (
+            Path(execution_root)
+            / subprocess.check_output(
+                [*command, "cquery", label, "--output=files"], cwd=root, text=True
+            ).strip()
+        ).resolve()
+        for label in labels
+    ]
 
 
 def main() -> None:
@@ -11,6 +33,7 @@ def main() -> None:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     command = [args.bazel]
+    node, bun = runtimes(command, root)
     for repository_name, extra in [
         ("test_npm", []),
         ("test_workspace_only", ["--workspace-only"]),
@@ -34,9 +57,10 @@ def main() -> None:
         repository = (Path(execution_root) / manifest).resolve().parent
         subprocess.run(
             [
-                str(repository / "tools/node"),
+                str(node),
                 str(root / "tests/verify.mjs"),
                 str(repository),
+                str(bun),
                 *extra,
             ],
             cwd=root,
