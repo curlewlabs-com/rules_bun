@@ -1,6 +1,6 @@
 module(name = "acquisition_state_consumer")
 
-bazel_dep(name = "curlewlabs_rules_bun", version = "0.2.0")
+bazel_dep(name = "curlewlabs_rules_bun", version = "0.3.0")
 
 # check_state.py stages sibling directories so mutations never touch the checkout.
 local_path_override(
