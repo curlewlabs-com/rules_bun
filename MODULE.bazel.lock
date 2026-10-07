@@ -354,8 +354,8 @@
         }
       },
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "SsbYwN8Jvc+eanFh5oIDzY7jijfPduZ4jO+sHnv8r+4=",
-        "usagesDigest": "CUSC8ZF2SZ6FMNzUrk4x++4tSusJPmbujDAjOl62x30=",
+        "bzlTransitiveDigest": "9cj9YgJDn5CpWGP6enPK4sMPNe5gko9bXIa8bU0lvp8=",
+        "usagesDigest": "CZCXwaiATdUaaCMSYYotnI2fSNlxSwCrXPlA5MaAOYk=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
