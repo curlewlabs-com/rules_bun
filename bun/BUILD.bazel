@@ -1,6 +1,7 @@
 exports_files([
     "repositories.bzl",
     "install.mjs",
+    "layout.mjs",
     "plan.mjs",
 ])
 

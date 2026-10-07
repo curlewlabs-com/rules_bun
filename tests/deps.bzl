@@ -51,6 +51,18 @@ def _deps(ctx):
         inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
     )
 
+    # An alias beside the package it renames, and a bin inside a dependency
+    # cycle: the two parts of Bun's isolated layout its install threads decide.
+    bun_install(
+        name = "test_layout",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//tests:layout/package.json",
+        lock = "//tests:layout/bun.lock",
+        # Bun installs a root without workspaces into a hoisted tree otherwise.
+        inputs = {"//tests:layout/bunfig.toml": "bunfig.toml"},
+    )
+
     # Bazel must refuse tarball bytes that disagree with the locked integrity.
     bun_install(
         name = "test_tampered_integrity",
@@ -67,6 +79,20 @@ def _deps(ctx):
         node = node,
         package_json = "//tests:rejections/unsupported/package.json",
         lock = "//tests:rejections/unsupported/bun.lock",
+    )
+
+    # Bun lets one hoist pattern replace another, so a workspace's would
+    # silently undo the acquisition's or be undone by it.
+    bun_install(
+        name = "test_hoist_pattern",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//:package.json",
+        lock = "//:bun.lock",
+        inputs = {
+            "//:examples/workspace/package.json": "examples/workspace/package.json",
+            "//tests:rejections/hoisted.npmrc": ".npmrc",
+        },
     )
     bun_install(
         name = "test_missing_workspace",

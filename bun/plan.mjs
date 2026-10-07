@@ -28,7 +28,35 @@ function admits(constraint, value) {
   return allowed.length === 0 || allowed.includes(value);
 }
 
+const PACKAGE_NAME = /^(@[A-Za-z0-9~-][A-Za-z0-9._~-]*\/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*$/;
+
+// A lock key is the dependency path to a package, so its last name is the one
+// the dependent declared; for an alias, that differs from the package's name.
+function declaredName(key) {
+  const parts = key.split("/");
+  return parts.length > 1 && parts.at(-2).startsWith("@")
+    ? parts.slice(-2).join("/")
+    : parts.at(-1);
+}
+
+function binDeclaration(spec, metadata) {
+  const { bin, binDir } = metadata;
+  if (bin === undefined && binDir === undefined) return undefined;
+  const readable =
+    bin === undefined
+      ? typeof binDir === "string"
+      : typeof bin === "string" ||
+        (bin !== null &&
+          typeof bin === "object" &&
+          !Array.isArray(bin) &&
+          Object.values(bin).every((target) => typeof target === "string"));
+  if (!readable) throw new Error(`Unreadable bin declaration: ${spec}`);
+  return bin === undefined ? { binDir } : { bin };
+}
+
 const tarballs = new Map();
+const aliases = new Set();
+const bins = {};
 for (const [key, entry] of Object.entries(packages)) {
   if (!Array.isArray(entry) || typeof entry[0] !== "string") {
     throw new Error(`Unreadable lock entry: ${key}`);
@@ -57,11 +85,20 @@ for (const [key, entry] of Object.entries(packages)) {
     );
   }
   // The name and version become a download path, so neither may leave it.
-  if (
-    !/^(@[A-Za-z0-9~-][A-Za-z0-9._~-]*\/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*$/.test(name) ||
-    !/^[A-Za-z0-9][A-Za-z0-9.+_-]*$/.test(version)
-  ) {
+  if (!PACKAGE_NAME.test(name) || !/^[A-Za-z0-9][A-Za-z0-9.+_-]*$/.test(version)) {
     throw new Error(`Unsupported package name or version: ${spec}`);
+  }
+  // An alias name becomes a line of the installer's Bun configuration.
+  const declared = declaredName(key);
+  if (!PACKAGE_NAME.test(declared)) throw new Error(`Unsupported dependency name: ${key}`);
+  if (declared !== name) aliases.add(declared);
+  const declaration = binDeclaration(spec, metadata);
+  if (declaration !== undefined) {
+    const previous = bins[spec];
+    if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(declaration)) {
+      throw new Error(`Conflicting bin declarations for ${spec}`);
+    }
+    bins[spec] = declaration;
   }
   if (!admits(metadata.os, process.platform) || !admits(metadata.cpu, process.arch)) {
     continue;
@@ -81,5 +118,10 @@ writeFileSync(
       .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([path, integrity]) => ({ path, integrity })),
   ),
+);
+// bun/layout.mjs and the installer read what the lock decides about the layout.
+writeFileSync(
+  join(repository, "layout.json"),
+  JSON.stringify({ aliases: [...aliases].sort(), bins }),
 );
 console.log(`Planned ${tarballs.size} registry tarballs for Bazel acquisition`);

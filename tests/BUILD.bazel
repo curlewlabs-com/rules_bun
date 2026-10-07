@@ -1,6 +1,10 @@
 exports_files([
     "deps.bzl",
+    "layout/bun.lock",
+    "layout/bunfig.toml",
+    "layout/package.json",
     "mismatched.package.json",
+    "rejections/hoisted.npmrc",
     "rejections/tampered/bun.lock",
     "rejections/tampered/package.json",
     "rejections/unsupported/bun.lock",

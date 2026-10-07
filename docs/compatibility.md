@@ -74,7 +74,8 @@ Invalid input layouts, unsupported workspace selections, frozen-lock
 disagreement, missing declared manifests, runtime/installer failures, and
 installation timeouts fail repository acquisition. So do a lock entry outside
 the default registry, a tarball whose bytes disagree with its locked integrity,
-and an installer request for anything other than a listed tarball. There is no unlocked
+and an installer request for anything other than a listed tarball. So does a
+root `.npmrc` or `bunfig.toml` that sets a hoist pattern. There is no unlocked
 fallback install. An installer that modifies a declared
 input fails acquisition. Absolute, escaping, or dangling package links, nested Bazel
 package boundaries, and unsupported filesystem entries also fail acquisition.

@@ -257,7 +257,7 @@ def main() -> None:
             )
 
             # Only script bytes change: Starlark and repository attributes stay fixed.
-            for script in ["install", "plan"]:
+            for script in ["install", "layout", "plan"]:
                 path = candidate / f"bun/{script}.mjs"
                 original = path.read_text()
                 path.write_text(

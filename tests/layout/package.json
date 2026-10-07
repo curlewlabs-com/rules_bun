@@ -1,0 +1,9 @@
+{
+  "name": "layout-fixture",
+  "private": true,
+  "dependencies": {
+    "@isaacs/cliui": "8.0.2",
+    "eslint": "9.39.1",
+    "string-width": "6.1.0"
+  }
+}

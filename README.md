@@ -63,11 +63,23 @@ off when a lifecycle script writes the repository's absolute path, the time, or
 other host state into its output. Either way, the rule removes its private
 runtime links and package cache once the closure is recorded.
 
+Bun's isolated linker leaves two parts of its layout to install timing, and the
+rule fixes both so that the same inputs produce the same closure. The fallback
+link for a package name in `node_modules/.bun/node_modules` is claimed per
+declared dependency name but written at the package's own name, so an alias
+such as `string-width-cjs` (`npm:string-width@^4.2.0`) races a dependency on
+`string-width` itself. The rule keeps aliases out of that directory through
+Bun's `hoist-pattern`, which leaves each link to the version Bun chooses for the
+package's own name. Bun also skips a dependency's bin when the dependency is in
+a cycle with the package linking it and is not installed yet; the rule adds
+each such link as Bun writes it when the dependency comes first.
+
 Declare every root workspace manifest even when selecting only one consumer.
 Workspace paths must be explicit directories in the root manifest: workspace
 globs are deliberately unsupported. `inputs` also accepts text installation
 configuration, patches, and source files needed by trusted lifecycle scripts,
-with root-relative destinations. Bun reads the original manifests and committed
+with root-relative destinations. A root `.npmrc` or `bunfig.toml` that sets a
+hoist pattern is refused, since the rule sets Bun's own. Bun reads the original manifests and committed
 lock; the rule does not translate either format. Runtime execution must include
 separately declared workspace sources when packages link to local code.
 
