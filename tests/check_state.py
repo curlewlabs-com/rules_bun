@@ -161,6 +161,60 @@ def concurrent_acquisitions(
         server_thread.join()
 
 
+def reused_acquisitions(
+    bazel: str, output: Path, directories: list[Path], staging: Path, tools: Path
+) -> None:
+    """A reproducible acquisition is reused across workspaces on unchanged inputs only.
+
+    The workspaces share one output user root, so they share Bazel's repo contents
+    cache while keeping separate output bases. Each lifecycle run reports to the
+    local server, so a reused acquisition is one whose lifecycle never ran.
+    """
+    arrivals: list[str] = []
+    arrivals_lock = threading.Lock()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            with arrivals_lock:
+                arrivals.append(self.path)
+            self.send_response(200)
+            self.end_headers()
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        address = f"http://127.0.0.1:{server.server_port}"
+        for directory in directories:
+            module = directory / "MODULE.bazel"
+            declaration = '    node = "@state_tools//:node",\n'
+            text = module.read_text()
+            assert declaration in text, text
+            module.write_text(
+                text.replace(declaration, declaration + "    reproducible = True,\n")
+            )
+            state(directory, "reused", address)
+        first, second = directories
+        export(bazel, output, first, staging / "reused-first", "reused", tools)
+        assert arrivals == ["/reused"], arrivals
+
+        export(bazel, output, second, staging / "reused-second", "reused", tools)
+        assert arrivals == ["/reused"], arrivals
+        print("Verified reuse of a reproducible acquisition in another workspace.")
+
+        # A changed input must acquire again rather than serve the cached result.
+        state(second, "reused-changed", address)
+        export(
+            bazel, output, second, staging / "reused-changed", "reused-changed", tools
+        )
+        assert arrivals == ["/reused", "/reused-changed"], arrivals
+        print("Verified a changed input bypasses the reused acquisition.", flush=True)
+    finally:
+        server.shutdown()
+        server.server_close()
+        server_thread.join()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bazel", default="bazel")
@@ -182,7 +236,8 @@ def main() -> None:
             shutil.copy2(sources[runtime], tools / runtime)
         output = staging / "bazel"
         directories = [staging / "left", staging / "right"]
-        for directory in directories:
+        reused = [staging / "reused-a", staging / "reused-b"]
+        for directory in [*directories, *reused]:
             prepare(root, directory)
         left = directories[0]
         command = [args.bazel, "--ignore_all_rc_files", f"--output_user_root={output}"]
@@ -249,8 +304,9 @@ def main() -> None:
                 print(f"Verified {runtime} replacement without a clean.", flush=True)
 
             concurrent_acquisitions(args.bazel, output, directories, staging, tools)
+            reused_acquisitions(args.bazel, output, reused, staging, tools)
         finally:
-            for directory in directories:
+            for directory in [*directories, *reused]:
                 subprocess.run([*command, "shutdown"], cwd=directory, check=True)
 
 

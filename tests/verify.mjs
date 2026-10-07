@@ -14,7 +14,10 @@ import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const source = resolve(process.argv[2]);
-const workspaceOnly = process.argv[3] === "--workspace-only";
+// The declared Bun, as a consumer supplies its own; the repository's runtime
+// links are private to acquisition.
+const bun = resolve(process.argv[3]);
+const workspaceOnly = process.argv[4] === "--workspace-only";
 const closure = JSON.parse(readFileSync(join(source, "closure.json"), "utf8"));
 const restored = mkdtempSync(join(tmpdir(), "bun-consumer-"));
 try {
@@ -52,7 +55,7 @@ try {
   `;
   for (const [executable, args] of [
     [process.execPath, ["--eval", script]],
-    [join(source, "tools", "bun"), ["--no-install", "--eval", script]],
+    [bun, ["--no-install", "--eval", script]],
   ]) {
     const result = spawnSync(executable, args, {
       cwd: restored,

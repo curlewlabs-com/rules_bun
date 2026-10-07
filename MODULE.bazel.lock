@@ -354,8 +354,8 @@
         }
       },
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "a0kzLUcnj5sQzXsp/r8G47uialX5FYfI2iqR4CyEzDI=",
-        "usagesDigest": "S7sv9VgOr9nIF5lJ4em2/8fprUIapS3IdOBtB54wBwQ=",
+        "bzlTransitiveDigest": "BDfByB9Fl7ZqZGo5knPd15qlrA73a2blRy1lJ2TU+R0=",
+        "usagesDigest": "L4rqnd1ENL4zkTQZRB8yA8rFZ2IJff16Ziw8eBWPTYo=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
@@ -414,6 +414,24 @@
               }
             }
           },
+          "test_tampered_integrity": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//tests:rejections/tampered/package.json",
+              "lock": "@@//tests:rejections/tampered/bun.lock"
+            }
+          },
+          "test_unsupported_source": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//tests:rejections/unsupported/package.json",
+              "lock": "@@//tests:rejections/unsupported/bun.lock"
+            }
+          },
           "test_missing_workspace": {
             "repoRuleId": "@@//bun:repositories.bzl%bun_install",
             "attributes": {
@@ -460,7 +478,7 @@
       },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
-        "usagesDigest": "wzmCpjqZHtbOwXga6IuFnsJ9lYcYq9+7F+5ir0OoxLE=",
+        "usagesDigest": "NFHi6VEqAgvW3VOPGdDZ9ztZ6Xq3+yAbzISZu4qpZOY=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
