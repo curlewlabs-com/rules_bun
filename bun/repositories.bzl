@@ -13,7 +13,7 @@ def _bun_install_impl(ctx):
         ctx.file("workspace/" + destination, ctx.read(label), executable = False)
 
     # Passing paths to a subprocess does not watch the files it reads.
-    for tool in [ctx.attr.bun, ctx.attr.node, ctx.attr._installer, ctx.attr._planner]:
+    for tool in [ctx.attr.bun, ctx.attr.node, ctx.attr._installer, ctx.attr._layout, ctx.attr._planner]:
         ctx.watch(tool)
     ctx.symlink(ctx.path(ctx.attr.bun), "tools/bun")
     ctx.symlink(ctx.path(ctx.attr.node), "tools/node")
@@ -81,6 +81,7 @@ bun_install = repository_rule(
         "timeout": attr.int(default = 600, doc = "Acquisition timeout in seconds, including lifecycle scripts."),
         "reproducible": attr.bool(default = False, doc = "Declare to Bazel that acquiring these inputs again would produce the same repository, so it may reuse the result from its repo contents cache in other workspaces and output bases instead of installing again. Set it only when every lifecycle output depends on the declared inputs alone, not on the repository's absolute path, the time, or other host state."),
         "_installer": attr.label(default = Label("//bun:install.mjs")),
+        "_layout": attr.label(default = Label("//bun:layout.mjs")),
         "_planner": attr.label(default = Label("//bun:plan.mjs")),
     },
     doc = "Acquire a consumer's frozen Bun workspace closure, with private installer state and no ambient Node executable. Bazel downloads the locked registry tarballs; Bun installs them from a loopback registry.",

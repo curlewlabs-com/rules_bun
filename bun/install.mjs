@@ -15,6 +15,7 @@ import { createServer } from "node:http";
 import { createServer as createSocketServer } from "node:net";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { completeCyclicBins } from "./layout.mjs";
 
 const repository = resolve(process.argv[2]);
 const workspace = join(repository, "workspace");
@@ -62,6 +63,32 @@ const before = Object.fromEntries(
 );
 for (const directory of ["home", "tmp", "cache"])
   mkdirSync(join(repository, "scratch", directory), { recursive: true });
+
+// Bun keeps one fallback link per package name in node_modules/.bun/node_modules,
+// claimed by the first dependency declared under that name but written at the
+// package's own name. An alias and a dependency on the package itself then
+// write the same link, and install threads decide which lands. With aliases
+// kept out, only dependencies declared under a package's own name write it.
+const layout = JSON.parse(readFileSync(join(repository, "layout.json"), "utf8"));
+// A workspace hoist pattern would replace this one, or this one a bunfig.toml's.
+for (const [path, setting] of [
+  [".npmrc", /^\s*hoist-pattern\b/m],
+  ["bunfig.toml", /\bhoistPattern\b/],
+]) {
+  if (
+    request.inputs.includes(path) &&
+    setting.test(readFileSync(join(workspace, path), "utf8"))
+  )
+    throw new Error(
+      `Unsupported hoist pattern in ${path}: the acquisition sets Bun's own to keep its layout deterministic`,
+    );
+}
+// An empty pattern would hoist nothing at all.
+if (layout.aliases.length)
+  writeFileSync(
+    join(repository, "scratch", "home", ".npmrc"),
+    layout.aliases.map((alias) => `hoist-pattern[]=!${alias}\n`).join(""),
+  );
 const bun = join(repository, "tools", "bun");
 const node = join(repository, "tools", "node");
 
@@ -154,6 +181,9 @@ for (const [path, hash] of Object.entries(before)) {
   if (digest(join(workspace, path)) !== hash)
     throw new Error(`Installer modified declared input: ${path}`);
 }
+const completed = completeCyclicBins(workspace, layout.bins);
+if (completed)
+  console.log(`Dependency bin links Bun left to install timing, added: ${completed}`);
 
 const entries = [];
 const files = [];
@@ -203,6 +233,7 @@ writeFileSync(
       format: 1,
       installer: digest(import.meta.filename),
       planner: digest(join(import.meta.dirname, "plan.mjs")),
+      layout: digest(join(import.meta.dirname, "layout.mjs")),
       tools: { bun: digest(bun), node: digest(node) },
       inputs: before,
       workspaces: request.workspaces,
