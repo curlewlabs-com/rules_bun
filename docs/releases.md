@@ -58,7 +58,17 @@ test sandbox; the helper and CI exercise the actual archive.
 
 Inspect the draft assets and provenance, verify the downloaded archive against
 `SHA256SUMS` and the reviewed candidate, and confirm the installation snippet's
-URL, integrity, strip prefix, and module version match the asset. Obtain the
+URL, integrity, strip prefix, and module version match the asset. Verify the
+archive's provenance against the signing workflow and the release tag:
+
+```sh
+gh attestation verify rules_bun-X.Y.Z.tar.gz -R curlewlabs-com/rules_bun \
+  --signer-workflow bazel-contrib/.github/.github/workflows/release_ruleset.yaml \
+  --source-ref refs/tags/vX.Y.Z
+```
+
+The reusable workflow signs the attestation, so verifying with only `-R` fails
+even for a genuine archive. Obtain the
 maintainer's explicit publication approval, then publish the draft. Immutable
 releases and fixed-tag protection prevent rewriting published bytes. Fix a
 published defect with a new version.
