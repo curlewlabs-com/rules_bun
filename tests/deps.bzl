@@ -102,4 +102,16 @@ def _deps(ctx):
         lock = "//:bun.lock",
     )
 
+    # A watch on a missing identity would record its absence and key nothing,
+    # so a runtime upgrade would keep the closure the old runtime installed.
+    bun_install(
+        name = "test_missing_identity",
+        bun = "@test_bun//:bun",
+        bun_identity = "//tests:rejections/missing.identity",
+        node = node,
+        package_json = "//:package.json",
+        lock = "//:bun.lock",
+        inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
+    )
+
 deps = module_extension(implementation = _deps, os_dependent = True, arch_dependent = True)

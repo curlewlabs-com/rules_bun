@@ -354,7 +354,7 @@
         }
       },
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "9cj9YgJDn5CpWGP6enPK4sMPNe5gko9bXIa8bU0lvp8=",
+        "bzlTransitiveDigest": "CRj9+sh/zf1Sw5sSrTzhvDmKqELK+jJfsA6LZAKhzag=",
         "usagesDigest": "CZCXwaiATdUaaCMSYYotnI2fSNlxSwCrXPlA5MaAOYk=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -465,6 +465,19 @@
               "package_json": "@@//:package.json",
               "lock": "@@//:bun.lock"
             }
+          },
+          "test_missing_identity": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "bun_identity": "@@//tests:rejections/missing.identity",
+              "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//:package.json",
+              "lock": "@@//:bun.lock",
+              "inputs": {
+                "@@//:examples/workspace/package.json": "examples/workspace/package.json"
+              }
+            }
           }
         }
       }
@@ -503,7 +516,7 @@
       },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
-        "usagesDigest": "jM704eNvkcx0iFAGaD9+FUfNSHFS+Xiq2R2fgfDhc6c=",
+        "usagesDigest": "LLKUmiMyrJ46eI3CVvWDkN3nnxygrLjcF7sxpbodyc8=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],

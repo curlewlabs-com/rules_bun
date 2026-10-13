@@ -13,8 +13,17 @@ def _bun_install_impl(ctx):
         ctx.file("workspace/" + destination, ctx.read(label), executable = False)
 
     # Passing paths to a subprocess does not watch the files it reads.
-    for tool in [ctx.attr.bun, ctx.attr.node, ctx.attr._installer, ctx.attr._layout, ctx.attr._planner]:
-        ctx.watch(tool)
+    for script in [ctx.attr._installer, ctx.attr._layout, ctx.attr._planner]:
+        ctx.watch(script)
+
+    # Validating a cached repository hashes every watched file, and a runtime
+    # binary dwarfs the rest. Its identity file keys it instead; a read, unlike
+    # a watch, fails on a missing file, which would leave the runtime unkeyed.
+    for runtime, identity in [(ctx.attr.bun, ctx.attr.bun_identity), (ctx.attr.node, ctx.attr.node_identity)]:
+        if identity:
+            ctx.read(identity, watch = "yes")
+        else:
+            ctx.watch(runtime)
     ctx.symlink(ctx.path(ctx.attr.bun), "tools/bun")
     ctx.symlink(ctx.path(ctx.attr.node), "tools/node")
     ctx.file("request.json", json.encode({
@@ -74,6 +83,8 @@ bun_install = repository_rule(
     attrs = {
         "bun": attr.label(mandatory = True, allow_single_file = True, doc = "Bazel-acquired host Bun binary."),
         "node": attr.label(mandatory = True, allow_single_file = True, doc = "Bazel-acquired host Node binary; lifecycle scripts retain Node semantics."),
+        "bun_identity": attr.label(allow_single_file = True, doc = "Optional small file whose content changes whenever the `bun` binary's bytes do, such as the pin it was downloaded from. When set, the rule watches this file instead of the binary, so checking a cached acquisition need not hash the binary; a binary replaced under an unchanged identity keeps the acquisition made with the old one. The file must exist."),
+        "node_identity": attr.label(allow_single_file = True, doc = "Optional small file identifying the `node` binary, with the same contract as `bun_identity`."),
         "package_json": attr.label(mandatory = True, allow_single_file = True, doc = "Unmodified root package.json."),
         "lock": attr.label(mandatory = True, allow_single_file = True, doc = "Committed bun.lock, checked by Bun's frozen installer. Every package must come from the default npm registry with an integrity value; Bazel downloads those tarballs."),
         "inputs": attr.label_keyed_string_dict(allow_files = True, doc = "Workspace manifests and install configuration mapped to root-relative destinations."),

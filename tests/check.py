@@ -114,6 +114,7 @@ def main() -> None:
         ("test_lock_mismatch", "Installation reached outside the locked tarballs"),
         ("test_hoist_pattern", "Unsupported hoist pattern in .npmrc"),
         ("test_missing_workspace", "Missing declared workspace manifest"),
+        ("test_missing_identity", "missing.identity"),
         ("test_tampered_integrity", "Checksum was"),
         ("test_unsupported_source", "Unsupported lock entry"),
     ]:

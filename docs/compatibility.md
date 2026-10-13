@@ -71,7 +71,8 @@ design that addresses both acquisition and exported-artifact exposure.
 ## Failure contract
 
 Invalid input layouts, unsupported workspace selections, frozen-lock
-disagreement, missing declared manifests, runtime/installer failures, and
+disagreement, missing declared manifests or runtime identity files,
+runtime/installer failures, and
 installation timeouts fail repository acquisition. So do a lock entry outside
 the default registry, a tarball whose bytes disagree with its locked integrity,
 and an installer request for anything other than a listed tarball. So does a

@@ -56,6 +56,17 @@ The runtime attributes must identify source files in acquired repositories, not
 aliases or action-generated executables. Select binaries for the acquisition
 host; this rule does not cross-install packages for another platform.
 
+Bazel checks a cached acquisition by hashing the files it watched, and by
+default those include both runtime binaries. Set `bun_identity` and
+`node_identity` to small files that change whenever the binaries do, such as the
+pins they were downloaded from, and the rule watches those instead. A missing
+identity file fails acquisition. A binary replaced while its identity stays the
+same keeps the acquisition the old one made. With rules_nodejs,
+`@nodejs_<platform>//:node_info` names the downloaded archive and records its
+SHA-256. A pin listing every platform's archive is the same on every host, so
+hosts on different platforms that share a repository contents cache also need an
+attribute that differs between them, such as a per-platform `node` label.
+
 Set `reproducible = True` to let Bazel reuse an acquisition from its repo
 contents cache in other workspaces and output bases instead of installing again.
 It declares the repository a function of its declared inputs alone, so leave it
@@ -145,9 +156,10 @@ The integration check acquires real packages, restores their exported payload,
 resolves a workspace dependency, and runs native esbuild with both runtimes. It
 verifies that a workspace-only consumer cannot resolve root tooling, that
 removing the native executable causes failure, and that acquisition rejects a
-manifest the lock does not satisfy, an omitted workspace manifest, a tarball
-whose bytes disagree with its locked integrity, and a lock entry from a source
-other than the default registry. Acquisition needs network access on a cold
+manifest the lock does not satisfy, an omitted workspace manifest, a declared
+runtime identity file that does not exist, a tarball whose bytes disagree with
+its locked integrity, and a lock entry from a source other than the default
+registry. Acquisition needs network access on a cold
 repository cache.
 
 The archive check exercises an independent module with development dependencies
@@ -163,7 +175,9 @@ records the tested revision and platform results. A platform selection is not a
 promise about other OS releases or runtime versions.
 
 The state check rebuilds without cleaning after changing lifecycle inputs,
-installer bytes, and real runtime binaries at unchanged paths. It also overlaps
+installer bytes, and real runtime binaries at unchanged paths. With runtime
+identity files declared, a replaced binary must keep its acquisition, even for a
+new Bazel server, until its identity changes. The check also overlaps
 independent acquisitions at a lifecycle barrier and verifies their private
 state and exported native payloads. A reproducible acquisition must be reused
 by a second workspace sharing the repository cache without running its

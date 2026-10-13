@@ -58,14 +58,22 @@ def state(directory: Path, identity: str, barrier: str = "") -> None:
     )
 
 
-def export(
-    bazel: str,
-    output: Path,
-    directory: Path,
-    destination: Path,
-    identity: str,
-    tools: Path,
-) -> Lifecycle:
+def runtime_versions(tools: Path) -> dict[str, str]:
+    return {
+        runtime: subprocess.check_output([str(tools / runtime), "--version"], text=True)
+        .strip()
+        .removeprefix("v")
+        for runtime in ["bun", "node"]
+    }
+
+
+def replace_runtime(tools: Path, runtime: str, source: Path) -> None:
+    target = tools / runtime
+    target.unlink()
+    shutil.copy2(source, target)
+
+
+def acquire(bazel: str, output: Path, directory: Path, destination: Path) -> Lifecycle:
     subprocess.run(
         [
             sys.executable,
@@ -82,13 +90,20 @@ def export(
     lifecycle: Lifecycle = json.loads(
         (destination / "workspace/lifecycle.json").read_text()
     )
+    return lifecycle
+
+
+def export(
+    bazel: str,
+    output: Path,
+    directory: Path,
+    destination: Path,
+    identity: str,
+    tools: Path,
+) -> Lifecycle:
+    lifecycle = acquire(bazel, output, directory, destination)
     assert lifecycle["identity"] == identity, lifecycle
-    expected = {
-        runtime: subprocess.check_output([str(tools / runtime), "--version"], text=True)
-        .strip()
-        .removeprefix("v")
-        for runtime in ["bun", "node"]
-    }
+    expected = runtime_versions(tools)
     assert {"bun": lifecycle["bun"], "node": lifecycle["node"]} == expected, lifecycle
     # Reuse the standalone consumer to check closure digests and native execution.
     subprocess.run(
@@ -215,6 +230,66 @@ def reused_acquisitions(
         server_thread.join()
 
 
+def identity_keyed_acquisitions(
+    bazel: str,
+    output: Path,
+    directory: Path,
+    staging: Path,
+    tools: Path,
+    sources: dict[str, Path],
+) -> None:
+    """A declared identity file keys its runtime in place of the binary's bytes.
+
+    Checking a cached acquisition hashes every watched file, and the runtimes
+    dwarf the rest, so a binary replaced under an unchanged identity must keep
+    its acquisition, checked by a new Bazel server as on a freshly booted host.
+    Changing the identity must then acquire again with the binary now in place.
+    """
+    module = directory / "MODULE.bazel"
+    declaration = '    node = "@state_tools//:node",\n'
+    text = module.read_text()
+    assert declaration in text, text
+    module.write_text(
+        text.replace(
+            declaration,
+            declaration
+            + '    bun_identity = "//:bun.identity",\n'
+            + '    node_identity = "//:node.identity",\n',
+        )
+    )
+    for runtime in ["bun", "node"]:
+        replace_runtime(tools, runtime, sources[f"previous_{runtime}"])
+        (directory / f"{runtime}.identity").write_text("previous")
+    state(directory, "identity")
+    export(bazel, output, directory, staging / "identity", "identity", tools)
+    command = [bazel, "--ignore_all_rc_files", f"--output_user_root={output}"]
+    for runtime in ["bun", "node"]:
+        acquired = runtime_versions(tools)
+        replace_runtime(tools, runtime, sources[runtime])
+        # Equal versions would let a fresh acquisition pass for a kept one.
+        assert runtime_versions(tools)[runtime] != acquired[runtime], acquired
+        subprocess.run([*command, "shutdown"], cwd=directory, check=True)
+        lifecycle = acquire(
+            bazel, output, directory, staging / f"identity-kept-{runtime}"
+        )
+        assert {"bun": lifecycle["bun"], "node": lifecycle["node"]} == acquired, (
+            lifecycle
+        )
+        (directory / f"{runtime}.identity").write_text("current")
+        export(
+            bazel,
+            output,
+            directory,
+            staging / f"identity-changed-{runtime}",
+            "identity",
+            tools,
+        )
+        print(
+            f"Verified {runtime} keyed by its identity file, not its bytes.",
+            flush=True,
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bazel", default="bazel")
@@ -237,7 +312,8 @@ def main() -> None:
         output = staging / "bazel"
         directories = [staging / "left", staging / "right"]
         reused = [staging / "reused-a", staging / "reused-b"]
-        for directory in [*directories, *reused]:
+        identified = staging / "identified"
+        for directory in [*directories, *reused, identified]:
             prepare(root, directory)
         left = directories[0]
         command = [args.bazel, "--ignore_all_rc_files", f"--output_user_root={output}"]
@@ -290,9 +366,7 @@ def main() -> None:
 
             # Replace real executable bytes at the same label and path, one at a time.
             for runtime in ["bun", "node"]:
-                target = tools / runtime
-                target.unlink()
-                shutil.copy2(sources[f"previous_{runtime}"], target)
+                replace_runtime(tools, runtime, sources[f"previous_{runtime}"])
                 export(
                     args.bazel,
                     output,
@@ -303,10 +377,13 @@ def main() -> None:
                 )
                 print(f"Verified {runtime} replacement without a clean.", flush=True)
 
+            identity_keyed_acquisitions(
+                args.bazel, output, identified, staging, tools, sources
+            )
             concurrent_acquisitions(args.bazel, output, directories, staging, tools)
             reused_acquisitions(args.bazel, output, reused, staging, tools)
         finally:
-            for directory in [*directories, *reused]:
+            for directory in [*directories, *reused, identified]:
                 subprocess.run([*command, "shutdown"], cwd=directory, check=True)
 
 
