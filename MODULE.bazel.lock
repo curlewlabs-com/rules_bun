@@ -354,7 +354,7 @@
         }
       },
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "PHjn0liDo3wPAOTCh9WgabUfGXIu9RRYrCGNf7p/nmY=",
+        "bzlTransitiveDigest": "1tus52HZXllXyl/yrVB4p0n1O1Zvh7ZFqpCYQMrxGu0=",
         "usagesDigest": "b/cWwcO4gCi77Q/WPVzZKRGpeMkPQA9o/GOs5RBg0N4=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -477,6 +477,37 @@
               "inputs": {
                 "@@//:examples/workspace/package.json": "examples/workspace/package.json"
               }
+            }
+          },
+          "test_cross_platform": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//:package.json",
+              "lock": "@@//:bun.lock",
+              "inputs": {
+                "@@//:examples/workspace/package.json": "examples/workspace/package.json"
+              },
+              "workspaces": [
+                ".",
+                "examples/workspace"
+              ],
+              "os": "linux",
+              "cpu": "x64"
+            }
+          },
+          "test_invalid_platform": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+deps+test_bun//:bun",
+              "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//:package.json",
+              "lock": "@@//:bun.lock",
+              "inputs": {
+                "@@//:examples/workspace/package.json": "examples/workspace/package.json"
+              },
+              "os": "--registry=x"
             }
           }
         }

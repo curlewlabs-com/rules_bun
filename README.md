@@ -54,7 +54,14 @@ bun_install(
 
 The runtime attributes must identify source files in acquired repositories, not
 aliases or action-generated executables. Select binaries for the acquisition
-host; this rule does not cross-install packages for another platform.
+host.
+
+A closure carries the acquisition host's native optional packages unless `os`
+and `cpu` name another platform, such as `darwin` and `arm64`, for a closure an
+action executes there. Lifecycle scripts still run on the acquisition host, so a
+package whose script builds or selects a native binary for the host is outside
+what that changes; verify such packages before relying on a cross-installed
+closure.
 
 Bazel checks a cached acquisition by hashing the files it watched, and by
 default those include both runtime binaries. Set `bun_identity` and
@@ -96,7 +103,7 @@ separately declared workspace sources when packages link to local code.
 
 Package bytes come from Bazel's downloader rather than from Bun. The declared
 Bun first reads the committed lock with its own parser and lists the
-default-registry tarballs the acquisition host can install. Bazel downloads each
+default-registry tarballs the selected platform can install. Bazel downloads each
 one against its locked integrity and keeps it in the repository cache, so later
 acquisitions on that host reuse the verified file instead of downloading it
 again. Bun then installs from a loopback registry that serves exactly those
@@ -155,11 +162,13 @@ python3 tests/check_state.py --bazel /path/to/bazel
 The integration check acquires real packages, restores their exported payload,
 resolves a workspace dependency, and runs native esbuild with both runtimes. It
 verifies that a workspace-only consumer cannot resolve root tooling, that
-removing the native executable causes failure, and that acquisition rejects a
-manifest the lock does not satisfy, an omitted workspace manifest, a declared
-runtime identity file that does not exist, a tarball whose bytes disagree with
-its locked integrity, and a lock entry from a source other than the default
-registry. Acquisition needs network access on a cold
+removing the native executable causes failure, that a closure installed for the
+other supported operating system carries that system's native esbuild package
+rather than the host's, and that acquisition rejects a manifest the lock does
+not satisfy, an omitted workspace manifest, a declared runtime identity file
+that does not exist, a tarball whose bytes disagree with its locked integrity, a
+lock entry from a source other than the default registry, and a platform name
+that is not one. Acquisition needs network access on a cold
 repository cache.
 
 The archive check exercises an independent module with development dependencies

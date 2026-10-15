@@ -85,6 +85,29 @@ def check_layout(command: list[str], root: Path, node: Path) -> None:
     print("Verified deterministic layout: test_layout", flush=True)
 
 
+def check_cross_platform(command: list[str], root: Path) -> None:
+    """A closure installed for the other supported OS carries that OS's native
+    esbuild package and not the acquisition host's."""
+    host_os = {"Darwin": "darwin", "Linux": "linux"}[platform.system()]
+    host_cpu = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64"}[
+        platform.machine()
+    ]
+    target = "linux-x64" if host_os == "darwin" else "darwin-arm64"
+    closure = json.loads(
+        (
+            repository_of(command, root, "test_cross_platform") / "closure.json"
+        ).read_text()
+    )
+    packages = {
+        entry["path"].split("/")[2]
+        for entry in closure["entries"]
+        if entry["path"].startswith("node_modules/.bun/@esbuild+")
+    }
+    assert f"@esbuild+{target}@0.28.2" in packages, packages
+    assert f"@esbuild+{host_os}-{host_cpu}@0.28.2" not in packages, packages
+    print(f"Verified cross-platform closure: {target}", flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bazel", default="bazel")
@@ -93,6 +116,7 @@ def main() -> None:
     command = [args.bazel]
     node, bun = runtimes(command, root)
     check_layout(command, root, node)
+    check_cross_platform(command, root)
     for repository_name, extra in [
         ("test_npm", []),
         ("test_workspace_only", ["--workspace-only"]),
@@ -117,6 +141,7 @@ def main() -> None:
         ("test_missing_identity", "missing.identity"),
         ("test_tampered_integrity", "Checksum was"),
         ("test_unsupported_source", "Unsupported lock entry"),
+        ("test_invalid_platform", "os must be an npm platform name"),
     ]:
         result = subprocess.run(
             [*command, "build", f"@{repository_name}//:files"],

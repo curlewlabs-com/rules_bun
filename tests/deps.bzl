@@ -114,4 +114,30 @@ def _deps(ctx):
         inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
     )
 
+    # A closure for the other supported OS, as a client acquires for an action
+    # that executes on another platform: its native packages are that OS's.
+    other_os, other_cpu = ("linux", "x64") if ctx.os.name == "mac os x" else ("darwin", "arm64")
+    bun_install(
+        name = "test_cross_platform",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//:package.json",
+        lock = "//:bun.lock",
+        inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
+        workspaces = [".", "examples/workspace"],
+        os = other_os,
+        cpu = other_cpu,
+    )
+
+    # A platform name reaches the planner and Bun's command line.
+    bun_install(
+        name = "test_invalid_platform",
+        bun = "@test_bun//:bun",
+        node = node,
+        package_json = "//:package.json",
+        lock = "//:bun.lock",
+        inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
+        os = "--registry=x",
+    )
+
 deps = module_extension(implementation = _deps, os_dependent = True, arch_dependent = True)

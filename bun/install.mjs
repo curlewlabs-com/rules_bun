@@ -135,6 +135,9 @@ try {
         "--frozen-lockfile",
         "--no-progress",
         "--backend=copyfile",
+        // The planner listed the same platform's tarballs.
+        ...(request.os ? [`--os=${request.os}`] : []),
+        ...(request.cpu ? [`--cpu=${request.cpu}`] : []),
         ...request.workspaces.flatMap((p) => [
           "--filter",
           p === "." ? "./" : `./${p}`,

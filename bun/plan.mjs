@@ -1,8 +1,13 @@
 // Runs under the declared Bun so the committed lock is read by Bun's own parser.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repository = resolve(process.argv[2]);
+const request = JSON.parse(readFileSync(join(repository, "request.json"), "utf8"));
+// The platform the closure is installed for, which a consumer may execute on a
+// host other than this one.
+const targetOs = request.os || process.platform;
+const targetCpu = request.cpu || process.arch;
 const lock = Bun.JSONC.parse(
   await Bun.file(join(repository, "workspace", "bun.lock")).text(),
 );
@@ -100,7 +105,7 @@ for (const [key, entry] of Object.entries(packages)) {
     }
     bins[spec] = declaration;
   }
-  if (!admits(metadata.os, process.platform) || !admits(metadata.cpu, process.arch)) {
+  if (!admits(metadata.os, targetOs) || !admits(metadata.cpu, targetCpu)) {
     continue;
   }
   const path = `${name}/-/${name.split("/").pop()}-${version}.tgz`;
