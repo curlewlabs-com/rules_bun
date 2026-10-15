@@ -1,6 +1,7 @@
 """Exercise the repository rule with real packages and relocated consumers."""
 
 import argparse
+import hashlib
 import json
 import platform
 import subprocess
@@ -41,6 +42,55 @@ def repository_of(command: list[str], root: Path, repository_name: str) -> Path:
         text=True,
     ).strip()
     return (Path(execution_root) / manifest).resolve().parent
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def exported(command: list[str], root: Path, label: str) -> dict[str, Path]:
+    """Each file of a public target, keyed by its path in its repository."""
+    subprocess.run([*command, "build", label], cwd=root, check=True)
+    execution_root = Path(
+        subprocess.check_output(
+            [*command, "info", "execution_root"], cwd=root, text=True
+        ).strip()
+    )
+    paths = subprocess.check_output(
+        [*command, "cquery", label, "--output=files"], cwd=root, text=True
+    ).splitlines()
+    # cquery prints each as external/<repository>/<path>.
+    return {
+        "/".join(Path(path).parts[2:]): (execution_root / path).resolve()
+        for path in paths
+    }
+
+
+def check_runtime_independence(
+    command: list[str], root: Path, node: Path, bun: Path
+) -> None:
+    """Hosts on different platforms acquire the same closure with their own
+    runtime binaries. Anything in :files that records which would key every
+    action reading the closure by the host that acquired it."""
+    files = []
+    recorded = []
+    for name in ["test_npm", "test_other_runtimes"]:
+        exports = exported(command, root, f"@{name}//:files")
+        files.append({path: digest(file) for path, file in exports.items()})
+        (tools,) = exported(command, root, f"@{name}//:tools.json").values()
+        recorded.append(json.loads(tools.read_text()))
+    current, other = files
+    assert current == other, sorted(
+        path
+        for path in current.keys() | other.keys()
+        if current.get(path) != other.get(path)
+    )
+    assert recorded[0] == {"bun": digest(bun), "node": digest(node)}, recorded
+    # Equal runtimes would let the comparison above pass without testing anything.
+    assert all(
+        recorded[0][runtime] != recorded[1][runtime] for runtime in recorded[0]
+    ), recorded
+    print("Verified closure files independent of the acquiring runtimes.", flush=True)
 
 
 def check_layout(command: list[str], root: Path, node: Path) -> None:
@@ -117,6 +167,7 @@ def main() -> None:
     node, bun = runtimes(command, root)
     check_layout(command, root, node)
     check_cross_platform(command, root)
+    check_runtime_independence(command, root, node, bun)
     for repository_name, extra in [
         ("test_npm", []),
         ("test_workspace_only", ["--workspace-only"]),

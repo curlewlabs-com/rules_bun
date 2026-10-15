@@ -30,8 +30,8 @@ Load `bun_install` from `@curlewlabs_rules_bun//bun:repositories.bzl` using
 [consumer example](../examples/consumer/README.md) demonstrates the supported
 usage. Attribute defaults are defined by that rule, not by this policy.
 
-The acquired repository's public outputs are `:files`, `:closure.json`, and
-the regular file labels included in `:files`. The
+The acquired repository's public outputs are `:files`, `:closure.json`,
+`:tools.json`, and the regular file labels included in `:files`. The
 [closure format](closure-format.md) describes how to restore the payload.
 Repository scratch directories, tool symlinks, request files, `files.json`,
 installer implementation details, and development extensions are private.

@@ -6,9 +6,10 @@ with the regular files in the public `:files` target. Its producer is
 exporter that restores the workspace. This is the format contract, not a claim
 that the example reader accepts untrusted manifests safely.
 
-The initial format identifier is `1`. JSON object key order, whitespace,
-entry order, and diagnostic text are not part of the contract. SHA-256 values
-are lowercase hexadecimal digests of the referenced bytes.
+The current format identifier is `2`; [format history](#format-history) says
+what each one changed. JSON object key order, whitespace, entry order, and
+diagnostic text are not part of the contract. SHA-256 values are lowercase
+hexadecimal digests of the referenced bytes.
 
 | Field | Meaning |
 | --- | --- |
@@ -16,7 +17,6 @@ are lowercase hexadecimal digests of the referenced bytes.
 | `installer` | SHA-256 of the installer JavaScript used for acquisition. |
 | `planner` | SHA-256 of the JavaScript that lists the lock's registry tarballs. |
 | `layout` | SHA-256 of the JavaScript that settles the parts of Bun's layout install timing decides. |
-| `tools` | Object with `bun` and `node` SHA-256 values for the acquired executables. |
 | `inputs` | Object mapping declared workspace-relative input paths to their SHA-256 values. |
 | `workspaces` | Selected workspace directories; `.` selects the root dependencies. |
 | `entries` | Workspace entries to restore, including installation inputs and lifecycle outputs. |
@@ -51,14 +51,33 @@ them again reads every byte to prove what Bazel already holds. A consumer that
 receives the export any other way - copied off its acquisition host, archived,
 or read outside Bazel - validates each regular file's digest before execution.
 
-The runtime hashes describe acquisition, not an execution toolchain. Declare
-execution runtimes separately. The manifest does not identify every host
-library, network response, operating-system property, or external resource a
-lifecycle program could read. It therefore does not establish a complete
-execution identity or qualify shared action-cache results on its own.
+The manifest does not identify every host library, network response,
+operating-system property, or external resource a lifecycle program could read.
+It therefore does not establish a complete execution identity or qualify shared
+action-cache results on its own.
 
 The hashes detect mismatched bytes relative to a trusted manifest; they do not
 authenticate an untrusted manifest. Treat an export as executable supply-chain
 input. Supply an independent execution sandbox and network policy where those
 boundaries are required. See [compatibility](compatibility.md) and
 [security reporting](../SECURITY.md).
+
+## Acquisition runtimes
+
+`tools.json`, exported beside `closure.json` but outside `:files`, is an object
+with `bun` and `node` SHA-256 values for the executables that ran acquisition.
+Those are the acquisition host's own binaries, so hosts on different platforms
+that acquire the same closure record different values. Kept out of `:files`,
+they do not reach the inputs of an action that reads the closure, and the
+action's cache key does not depend on which host acquired it. Declare
+`:tools.json` only where the acquiring runtimes themselves matter.
+
+The runtime hashes describe acquisition, not an execution toolchain. Declare
+execution runtimes separately.
+
+## Format history
+
+| Format | Change |
+| --- | --- |
+| `1` | Initial format. `closure.json` also carried the runtime digests, as a `tools` field holding what `tools.json` now holds. |
+| `2` | The runtime digests moved to `tools.json`; every other field is unchanged. A reader that does not use them can accept both. |

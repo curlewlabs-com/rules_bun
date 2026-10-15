@@ -126,11 +126,13 @@ See the [closure format contract](docs/closure-format.md) for field semantics
 and consumer responsibilities.
 
 `@npm_tools//:files` contains the installed regular files and `closure.json`.
-The manifest records installer, input, and runtime SHA-256 digests, selected
-workspace paths, and the acquired tree entries. An entry is a regular file with
-its SHA-256 and executable bit, a directory, or a relative symlink. Entry paths
-are relative to the workspace root; exported regular file labels have a
-`workspace/` prefix.
+The manifest records installer and input SHA-256 digests, selected workspace
+paths, and the acquired tree entries. An entry is a regular file with its
+SHA-256 and executable bit, a directory, or a relative symlink. Entry paths are
+relative to the workspace root; exported regular file labels have a
+`workspace/` prefix. The digests of the Bun and Node that ran acquisition are in
+`@npm_tools//:tools.json`, outside `:files`, because they are the acquisition
+host's binaries rather than part of the closure.
 
 A consumer declares both the files and the manifest as inputs and restores their
 layout in a private workspace. Symlinks are described separately so Bazel does
@@ -164,12 +166,12 @@ resolves a workspace dependency, and runs native esbuild with both runtimes. It
 verifies that a workspace-only consumer cannot resolve root tooling, that
 removing the native executable causes failure, that a closure installed for the
 other supported operating system carries that system's native esbuild package
-rather than the host's, and that acquisition rejects a manifest the lock does
-not satisfy, an omitted workspace manifest, a declared runtime identity file
-that does not exist, a tarball whose bytes disagree with its locked integrity, a
-lock entry from a source other than the default registry, and a platform name
-that is not one. Acquisition needs network access on a cold
-repository cache.
+rather than the host's, that other Bun and Node releases acquire the same
+`:files`, and that acquisition rejects a manifest the lock does not satisfy, an
+omitted workspace manifest, a declared runtime identity file that does not
+exist, a tarball whose bytes disagree with its locked integrity, a lock entry
+from a source other than the default registry, and a platform name that is not
+one. Acquisition needs network access on a cold repository cache.
 
 The archive check exercises an independent module with development dependencies
 disabled, lifecycle output, native execution after removing acquisition state,

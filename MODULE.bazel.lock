@@ -354,7 +354,7 @@
         }
       },
       "os:osx,arch:aarch64": {
-        "bzlTransitiveDigest": "1tus52HZXllXyl/yrVB4p0n1O1Zvh7ZFqpCYQMrxGu0=",
+        "bzlTransitiveDigest": "OjZTXkBdQSNZpeobXTgTUp1kbCz0P+zw3saop5sQA8k=",
         "usagesDigest": "pJ/hniXj8JnbHIeAbnGOcrmgPjvyLS9zxg+5tOAjdBs=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -376,6 +376,22 @@
             "attributes": {
               "bun": "@@+deps+test_bun//:bun",
               "node": "@@rules_nodejs++node+nodejs_darwin_arm64//:bin/nodejs/bin/node",
+              "package_json": "@@//:package.json",
+              "lock": "@@//:bun.lock",
+              "inputs": {
+                "@@//:examples/workspace/package.json": "examples/workspace/package.json"
+              },
+              "workspaces": [
+                ".",
+                "examples/workspace"
+              ]
+            }
+          },
+          "test_other_runtimes": {
+            "repoRuleId": "@@//bun:repositories.bzl%bun_install",
+            "attributes": {
+              "bun": "@@+runtimes+previous_bun//:bun",
+              "node": "@@+runtimes+previous_node//:bin/node",
               "package_json": "@@//:package.json",
               "lock": "@@//:bun.lock",
               "inputs": {
@@ -547,7 +563,7 @@
       },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "9AH2svPKsr2FaK+SUDGDcbm0BS6H4JEV8aQcaZ6m6PY=",
-        "usagesDigest": "LLKUmiMyrJ46eI3CVvWDkN3nnxygrLjcF7sxpbodyc8=",
+        "usagesDigest": "FPGbZ+2cI71MSaSf7UHYbY8IOr4Y+22mWfWX5k5iRq4=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
