@@ -11,8 +11,12 @@ The supported baseline is the Bazel, Bun, and Node combination selected in the
 README's [Versions](../README.md#versions) section, on the native Linux and macOS
 hosts exercised by [CI](../.github/workflows/ci.yaml). Each release must have
 passing evidence for those selections. Other operating-system releases,
-architectures, runtime versions, Windows, and cross-installation are outside
-that baseline until native package and lifecycle behavior have been verified.
+architectures, runtime versions, and Windows are outside that baseline until
+native package and lifecycle behavior have been verified. Installing for another
+platform through `os` and `cpu` is within it for native optional packages,
+between the baseline's Linux and macOS platforms. Lifecycle scripts still run on
+the acquisition host, and a package whose script produces host-specific output
+is the consumer's to verify.
 Alternate runtimes used by invalidation tests are test fixtures, not additions
 to the supported baseline. Bun and Node execute on the acquisition host; the
 consumer owns selection and verification of those binaries and any later

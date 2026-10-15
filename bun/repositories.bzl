@@ -3,7 +3,13 @@
 # Locked default-registry entries name their tarballs only relative to this.
 _REGISTRY = "https://registry.npmjs.org/"
 
+# npm's platform names; they reach the planner and Bun's command line.
+_PLATFORM_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 def _bun_install_impl(ctx):
+    for attribute, value in [("os", ctx.attr.os), ("cpu", ctx.attr.cpu)]:
+        if value and not all([character in _PLATFORM_CHARACTERS for character in value.elems()]):
+            fail("%s must be an npm platform name such as darwin, linux, arm64 or x64: %r" % (attribute, value))
     inputs = {"package.json": ctx.attr.package_json, "bun.lock": ctx.attr.lock}
     for label, destination in ctx.attr.inputs.items():
         if destination in inputs or "\\" in destination or any([part in ("", ".", "..") for part in destination.split("/")]):
@@ -29,6 +35,8 @@ def _bun_install_impl(ctx):
     ctx.file("request.json", json.encode({
         "inputs": sorted(inputs.keys()),
         "workspaces": ctx.attr.workspaces,
+        "os": ctx.attr.os,
+        "cpu": ctx.attr.cpu,
     }), executable = False)
 
     # A private HOME keeps a user's global Bun configuration out of planning.
@@ -90,6 +98,8 @@ bun_install = repository_rule(
         "inputs": attr.label_keyed_string_dict(allow_files = True, doc = "Workspace manifests and install configuration mapped to root-relative destinations."),
         "workspaces": attr.string_list(default = ["."], doc = "Exact workspace directories selected for this consumer; '.' selects root dependencies."),
         "timeout": attr.int(default = 600, doc = "Acquisition timeout in seconds, including lifecycle scripts."),
+        "os": attr.string(doc = "npm operating system whose native optional packages the closure carries, such as `darwin` or `linux`, for a closure an action executes on another platform. Empty selects the acquisition host's. Lifecycle scripts still run on the acquisition host."),
+        "cpu": attr.string(doc = "npm CPU architecture whose native optional packages the closure carries, such as `arm64` or `x64`, with the same contract as `os`."),
         "reproducible": attr.bool(default = False, doc = "Declare to Bazel that acquiring these inputs again would produce the same repository, so it may reuse the result from its repo contents cache in other workspaces and output bases instead of installing again. Set it only when every lifecycle output depends on the declared inputs alone, not on the repository's absolute path, the time, or other host state."),
         "_installer": attr.label(default = Label("//bun:install.mjs")),
         "_layout": attr.label(default = Label("//bun:layout.mjs")),
