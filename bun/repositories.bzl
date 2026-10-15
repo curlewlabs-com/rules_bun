@@ -73,9 +73,12 @@ def _bun_install_impl(ctx):
         fail("Bun acquisition failed:\n" + result.stdout + "\n" + result.stderr)
 
     # Symlink topology is carried by the manifest, not traversed by Bazel globs.
+    # tools.json stays out of :files: hosts on different platforms acquire the
+    # same closure with different runtime binaries, and an action reading their
+    # digests would be keyed by the host that acquired its inputs.
     files = json.decode(ctx.read("files.json"))
     ctx.file("BUILD.bazel", """package(default_visibility = ["//visibility:public"])
-exports_files(["closure.json"])
+exports_files(["closure.json", "tools.json"])
 filegroup(name = "files", srcs = %s + ["closure.json"])
 """ % repr(files), executable = False)
 

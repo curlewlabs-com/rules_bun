@@ -229,15 +229,20 @@ function visit(directory) {
 }
 visit("");
 writeFileSync(join(repository, "files.json"), JSON.stringify(files));
+// The runtimes are the acquisition host's own binaries, so they describe the
+// host rather than the closure; repositories.bzl keeps this file out of :files.
+writeFileSync(
+  join(repository, "tools.json"),
+  JSON.stringify({ bun: digest(bun), node: digest(node) }, null, 2) + "\n",
+);
 writeFileSync(
   join(repository, "closure.json"),
   JSON.stringify(
     {
-      format: 1,
+      format: 2,
       installer: digest(import.meta.filename),
       planner: digest(join(import.meta.dirname, "plan.mjs")),
       layout: digest(join(import.meta.dirname, "layout.mjs")),
-      tools: { bun: digest(bun), node: digest(node) },
       inputs: before,
       workspaces: request.workspaces,
       entries,

@@ -33,6 +33,18 @@ def _deps(ctx):
         workspaces = [".", "examples/workspace"],
     )
 
+    # The same closure acquired by other Bun and Node releases, as a host on
+    # another platform acquires it with its own binaries.
+    bun_install(
+        name = "test_other_runtimes",
+        bun = "@previous_bun//:bun",
+        node = "@previous_node//:bin/node",
+        package_json = "//:package.json",
+        lock = "//:bun.lock",
+        inputs = {"//:examples/workspace/package.json": "examples/workspace/package.json"},
+        workspaces = [".", "examples/workspace"],
+    )
+
     bun_install(
         name = "test_workspace_only",
         bun = "@test_bun//:bun",
