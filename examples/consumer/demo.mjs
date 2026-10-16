@@ -15,8 +15,7 @@ import { spawnSync } from "node:child_process";
 
 const source = import.meta.dirname;
 const closure = JSON.parse(readFileSync(join(source, "closure.json"), "utf8"));
-// Format 2 only moved the runtime digests, which restoration does not read.
-assert.ok([1, 2].includes(closure.format), "Unsupported closure format");
+assert.equal(closure.format, 2, "Unsupported closure format");
 const restored = mkdtempSync(join(tmpdir(), "bun-restored-"));
 try {
   for (const entry of closure.entries) {
