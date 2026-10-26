@@ -62,6 +62,26 @@ input. Supply an independent execution sandbox and network policy where those
 boundaries are required. See [compatibility](compatibility.md) and
 [security reporting](../SECURITY.md).
 
+## Closure archive
+
+`closure.tar`, exposed as `:archive`, holds the same tree as one file: every
+entry in `entries`, at the same workspace-relative path, without the
+`workspace/` prefix the `:files` labels carry. Declaring it makes the closure
+one action input, where `:files` makes it one input per regular file.
+
+The archive is reproducible: the same entries give the same bytes on every
+host, so its digest is a stable action input. Entries appear in the manifest's
+sorted walk order, with modification times of zero, owner and group zero and
+empty, and modes `0755` for directories, `0777` for symlinks, and `0555` or
+`0444` for regular files by their executable bit. It is an uncompressed
+POSIX.1-2001 (pax) tar: paths and link targets longer than the ustar fields go
+in an extended header. It is uncompressed because compressed bytes can differ
+with the compressor's build.
+
+`closure.json` remains the description of the layout; a consumer that expands
+the archive can check what it expanded against `entries`. The archive adds no
+manifest field, so the format identifier is unchanged.
+
 ## Acquisition runtimes
 
 `tools.json`, exported beside `closure.json` but outside `:files`, is an object

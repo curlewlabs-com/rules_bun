@@ -125,6 +125,13 @@ not passed to the installer.
 See the [closure format contract](docs/closure-format.md) for field semantics
 and consumer responsibilities.
 
+`@npm_tools//:archive` is the installed workspace as one reproducible tar,
+`closure.tar`. Declare it, with `@npm_tools//:closure.json`, instead of the
+files: a consumer that declares `:files` takes one action input per installed
+file, which on a real closure is tens of thousands of inputs per action.
+Expanding the archive is the consumer's concern. `:files` is deprecated and
+will be removed in a later release.
+
 `@npm_tools//:files` contains the installed regular files and `closure.json`.
 The manifest records installer and input SHA-256 digests, selected workspace
 paths, and the acquired tree entries. An entry is a regular file with its

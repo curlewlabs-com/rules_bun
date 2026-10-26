@@ -19,7 +19,7 @@ def _bun_install_impl(ctx):
         ctx.file("workspace/" + destination, ctx.read(label), executable = False)
 
     # Passing paths to a subprocess does not watch the files it reads.
-    for script in [ctx.attr._installer, ctx.attr._layout, ctx.attr._planner]:
+    for script in [ctx.attr._archive, ctx.attr._installer, ctx.attr._layout, ctx.attr._planner]:
         ctx.watch(script)
 
     # Validating a cached repository hashes every watched file, and a runtime
@@ -76,9 +76,12 @@ def _bun_install_impl(ctx):
     # tools.json stays out of :files: hosts on different platforms acquire the
     # same closure with different runtime binaries, and an action reading their
     # digests would be keyed by the host that acquired its inputs.
+    # :archive is the closure as one input; :files, one input per installed
+    # file, stays for consumers still restoring from it and is deprecated.
     files = json.decode(ctx.read("files.json"))
     ctx.file("BUILD.bazel", """package(default_visibility = ["//visibility:public"])
-exports_files(["closure.json", "tools.json"])
+exports_files(["closure.json", "closure.tar", "tools.json"])
+filegroup(name = "archive", srcs = ["closure.tar"])
 filegroup(name = "files", srcs = %s + ["closure.json"])
 """ % repr(files), executable = False)
 
@@ -104,6 +107,7 @@ bun_install = repository_rule(
         "os": attr.string(doc = "npm operating system whose native optional packages the closure carries, such as `darwin` or `linux`, for a closure an action executes on another platform. Empty selects the acquisition host's. Lifecycle scripts still run on the acquisition host."),
         "cpu": attr.string(doc = "npm CPU architecture whose native optional packages the closure carries, such as `arm64` or `x64`, with the same contract as `os`."),
         "reproducible": attr.bool(default = False, doc = "Declare to Bazel that acquiring these inputs again would produce the same repository, so it may reuse the result from its repo contents cache in other workspaces and output bases instead of installing again. Set it only when every lifecycle output depends on the declared inputs alone, not on the repository's absolute path, the time, or other host state."),
+        "_archive": attr.label(default = Label("//bun:archive.mjs")),
         "_installer": attr.label(default = Label("//bun:install.mjs")),
         "_layout": attr.label(default = Label("//bun:layout.mjs")),
         "_planner": attr.label(default = Label("//bun:plan.mjs")),

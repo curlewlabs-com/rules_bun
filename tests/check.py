@@ -3,8 +3,11 @@
 import argparse
 import hashlib
 import json
+import os
 import platform
+import stat
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -93,6 +96,51 @@ def check_runtime_independence(
     print("Verified closure files independent of the acquiring runtimes.", flush=True)
 
 
+def check_archive(command: list[str], root: Path, node: Path) -> None:
+    """The closure archive is what a consumer declares instead of :files, so
+    its bytes must not depend on the runtimes that acquired it, and the
+    system tar must expand it to exactly the tree closure.json describes."""
+    subprocess.run(
+        [str(node), "--test", str(root / "tests/archive_test.mjs")],
+        cwd=root,
+        check=True,
+    )
+    archives = [
+        digest(path)
+        for name in ["test_npm", "test_other_runtimes"]
+        for path in exported(command, root, f"@{name}//:archive").values()
+    ]
+    assert len(archives) == 2 and archives[0] == archives[1], archives
+    (archive,) = exported(command, root, "@test_npm//:archive").values()
+    closure = json.loads(
+        (repository_of(command, root, "test_npm") / "closure.json").read_text()
+    )
+    with tempfile.TemporaryDirectory() as scratch:
+        tree = Path(scratch)
+        subprocess.run(["tar", "-xf", str(archive), "-C", str(tree)], check=True)
+        described = set()
+        for entry in closure["entries"]:
+            path = tree / entry["path"]
+            described.add(entry["path"])
+            if "symlink" in entry:
+                assert path.is_symlink(), entry
+                assert path.readlink().as_posix() == entry["symlink"], entry
+            elif entry.get("directory"):
+                assert path.is_dir() and not path.is_symlink(), entry
+            else:
+                assert digest(path) == entry["sha256"], entry
+                executable = bool(path.lstat().st_mode & stat.S_IXUSR)
+                assert executable == entry["executable"], entry
+        # os.walk does not follow links, which package-link cycles need.
+        expanded = {
+            (Path(directory) / name).relative_to(tree).as_posix()
+            for directory, directories, files in os.walk(tree)
+            for name in directories + files
+        }
+        assert expanded == described, sorted(expanded ^ described)
+    print("Verified the closure archive against closure.json.", flush=True)
+
+
 def check_layout(command: list[str], root: Path, node: Path) -> None:
     """The fixture's install leaves both timing-decided parts of Bun's layout
     to install threads; the closure must hold the one acquisition fixes."""
@@ -166,6 +214,7 @@ def main() -> None:
     command = [args.bazel]
     node, bun = runtimes(command, root)
     check_layout(command, root, node)
+    check_archive(command, root, node)
     check_cross_platform(command, root)
     check_runtime_independence(command, root, node, bun)
     for repository_name, extra in [
