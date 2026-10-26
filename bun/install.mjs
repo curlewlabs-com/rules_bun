@@ -15,6 +15,7 @@ import { createServer } from "node:http";
 import { createServer as createSocketServer } from "node:net";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { writeArchive } from "./archive.mjs";
 import { completeCyclicBins } from "./layout.mjs";
 
 const repository = resolve(process.argv[2]);
@@ -229,6 +230,7 @@ function visit(directory) {
 }
 visit("");
 writeFileSync(join(repository, "files.json"), JSON.stringify(files));
+writeArchive(workspace, entries, join(repository, "closure.tar"));
 // The runtimes are the acquisition host's own binaries, so they describe the
 // host rather than the closure; repositories.bzl keeps this file out of :files.
 writeFileSync(
