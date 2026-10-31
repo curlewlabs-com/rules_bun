@@ -24,7 +24,10 @@ jobs:
         # Standard public-repository runners avoid metered larger runners.
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # Intel macOS runs slowest: the npm fixture's cold units in both
+    # representations took about nine minutes there before bun_install's
+    # checks and the release archive's.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6.0.2
         with:
