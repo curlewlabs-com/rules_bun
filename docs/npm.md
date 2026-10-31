@@ -15,7 +15,7 @@ repository rule instead. The two are independent; a module can use either.
 ```starlark
 # MODULE.bazel
 bazel_dep(name = "curlewlabs_rules_bun", version = "<version>")
-bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.1.0")
+bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.1.1")
 
 # Neither module is in the Bazel Central Registry, and an override binds only
 # the root module, so the root declares both: rules_bun's from its release
