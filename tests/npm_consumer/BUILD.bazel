@@ -25,7 +25,12 @@ npm_bun_install_test(
     bunfig = "bunfig.toml",
     graph = "npm_graph.json",
     lock = "bun.lock",
-    manifests = ["package.json"],
+    # The lock is at this module's root, and a workspace's manifest sits
+    # below it.
+    manifests = [
+        "package.json",
+        "packages/app/package.json",
+    ],
     tarballs = "@npm//:tarballs",
 )
 
