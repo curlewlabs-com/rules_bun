@@ -1,11 +1,19 @@
 load("@rules_python//python:py_binary.bzl", "py_binary")
 load("@rules_python//python:py_test.bzl", "py_test")
 load("//npm:defs.bzl", "npm_bun_install_test", "npm_graph", "npm_graph_test", "npm_tree_binary", "npm_tree_test")
+load(":bun_launcher.bzl", "bun_launcher")
 
 exports_files([
     "npm_graph.json",
     "npm_install_exemptions.json",
 ])
+
+# The Bun //npm:bun names in this module's own builds (.bazelrc).
+bun_launcher(
+    name = "bun",
+    bun = "@test_bun//:bun",
+    visibility = ["//visibility:public"],
+)
 
 npm_graph(
     name = "npm_graph",
