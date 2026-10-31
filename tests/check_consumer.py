@@ -66,7 +66,7 @@ def main() -> None:
         # Bazel ignores archive_override with --ignore_dev_dependency, so serve the
         # exact archive through a local registry without requiring BCR publication.
         registry = producer / "registry"
-        module = registry / "modules/curlewlabs_rules_bun/0.8.0"
+        module = registry / "modules/curlewlabs_rules_bun/0.9.0"
         module.mkdir(parents=True)
         with tarfile.open(archive) as packaged:
             member = "/".join(filter(None, [args.strip_prefix, "MODULE.bazel"]))
