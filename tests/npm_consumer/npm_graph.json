@@ -6,7 +6,8 @@
     "semver@7.8.5": {"repository":"npm__semver__7.8.5","bin":{"semver":"bin/semver.js"},"edges":{}}
   },
   "workspaces": {
-    ".": {"semver":"semver@7.8.5"}
+    ".": {"semver":"semver@7.8.5"},
+    "packages/app": {"semver":"semver@7.8.5"}
   },
   "hoisted": {
 

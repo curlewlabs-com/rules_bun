@@ -130,12 +130,14 @@ def npm_graph(name, lock, bunfig, out, **kwargs):
     )
 
 def _npm_bun_install_test_impl(ctx):
-    root = ctx.file.lock.dirname
+    # The lock's directory by its short path, empty at the repository's root,
+    # where File.dirname gives no prefix every other path starts with.
+    root = ctx.file.lock.short_path.rpartition("/")[0]
     files = {}
     for file in [ctx.file.lock, ctx.file.bunfig] + ctx.files.manifests:
-        if file.dirname != root and not file.dirname.startswith(root + "/") and root:
+        if root and not file.short_path.startswith(root + "/"):
             fail("%s is outside the lock's directory, %s" % (file.short_path, root))
-        files[file.path.removeprefix(root).removeprefix("/")] = file.short_path
+        files[file.short_path.removeprefix(root + "/") if root else file.short_path] = file.short_path
     tarballs = ctx.attr.tarballs[NpmTarballsInfo].tarballs
     inputs = ctx.actions.declare_file(ctx.label.name + ".inputs.json")
     ctx.actions.write(inputs, json.encode({
