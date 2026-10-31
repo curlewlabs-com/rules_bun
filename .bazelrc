@@ -1,2 +1,3 @@
-# This module's own builds run the Bun its tests download for the host.
-build --//npm:bun=@test_bun//:bun
+# This module's own builds run the Bun its tests download for the host,
+# through a launcher shaped like a consumer's (tests/npm/bun_launcher.bzl).
+build --//npm:bun=//tests/npm:bun

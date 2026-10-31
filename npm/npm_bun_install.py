@@ -797,7 +797,10 @@ def main() -> int:
     stage(files, root)
     installed.mkdir()
     install(
-        args.bun.resolve(),
+        # Absolute, not resolved: //npm:bun may be a launcher that finds its
+        # Bun from the runfiles path it was invoked by, and resolving the
+        # symlink Bazel stages there moves it out of the tree.
+        args.bun.absolute(),
         root,
         installed,
         {graph.tarballs[name]: Path(path).resolve() for name, path in tarballs.items()},
