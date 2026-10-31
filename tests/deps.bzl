@@ -4,11 +4,11 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("//bun:repositories.bzl", "bun_install")
 
 _BUN = {
-    "mac os x/aarch64": ("darwin-aarch64", "82034e87c9d9b4398ea619aee2eed5d2a68c8157e9a6ae2d1052d84d533ccd8d", "@nodejs_darwin_arm64//:bin/nodejs/bin/node"),
-    "mac os x/x86_64": ("darwin-x64", "c1d90bf6140f20e572c473065dc6b37a4b036349b5e9e4133779cc642ad94323", "@nodejs_darwin_amd64//:bin/nodejs/bin/node"),
-    "linux/aarch64": ("linux-aarch64", "fa5ecb25cafa8e8f5c87a0f833719d46dd0af0a86c7837d806531212d55636d3", "@nodejs_linux_arm64//:bin/nodejs/bin/node"),
+    "mac os x/aarch64": ("darwin-aarch64", "90987a3a16d7db556d886ac3d551e7b6d3edf0a1cf43acaed622e8676be1d12f", "@nodejs_darwin_arm64//:bin/nodejs/bin/node"),
+    "mac os x/x86_64": ("darwin-x64", "80520d7e17526308c9185d261679ac6d27798d3803a0e9f7ff9121ab8affb012", "@nodejs_darwin_amd64//:bin/nodejs/bin/node"),
+    "linux/aarch64": ("linux-aarch64", "54328bbc2d9c8e0c9f892c544d66c57a83b84139e34909e5ee81758f1ac8fda7", "@nodejs_linux_arm64//:bin/nodejs/bin/node"),
     # Baseline avoids requiring AVX2 merely to acquire packages on x86 hosts.
-    "linux/amd64": ("linux-x64-baseline", "41201a8c5ee74a9dcbb1ce25a1104f1f929838b57a845aa78d98379b0ce7cde2", "@nodejs_linux_amd64//:bin/nodejs/bin/node"),
+    "linux/amd64": ("linux-x64-baseline", "c678040f14fe0440eb839d37cbd0ce4c051a32da72806ac97de6a6aab6bf728f", "@nodejs_linux_amd64//:bin/nodejs/bin/node"),
 }
 
 def _deps(ctx):
@@ -18,7 +18,7 @@ def _deps(ctx):
     archive, sha256, node = _BUN[platform]
     http_archive(
         name = "test_bun",
-        urls = ["https://github.com/oven-sh/bun/releases/download/bun-v1.3.10/bun-" + archive + ".zip"],
+        urls = ["https://github.com/oven-sh/bun/releases/download/bun-v1.4.2/bun-" + archive + ".zip"],
         sha256 = sha256,
         strip_prefix = "bun-" + archive,
         build_file_content = 'exports_files(["bun"])',
