@@ -11,9 +11,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-# The npm rules' dependency outside the Bazel Central Registry, which the
-# local registry serves as this module's own build resolves it.
-_ARCHIVE_STORE = "curlewlabs_rules_archive_store"
+from archive_store_pin import ARCHIVE_STORE, register
 
 
 def remove_tree(path: Path) -> None:
@@ -29,64 +27,6 @@ def remove_tree(path: Path) -> None:
     ]:
         directory.chmod(directory.stat().st_mode | 0o700)
     shutil.rmtree(path)
-
-
-def register_dependency(bazel: str, root: Path, registry: Path, name: str) -> None:
-    """Serve `name` from the local registry, from the release this module's
-    MODULE.bazel overrides it with: its version and MODULE.bazel as Bazel
-    resolved them, and its archive's URL, integrity and strip prefix."""
-    command = [bazel, "--ignore_all_rc_files"]
-    graph = json.loads(
-        subprocess.check_output(
-            [*command, "mod", "graph", "--output=json"], cwd=root, text=True
-        )
-    )
-    pending = [graph]
-    version = None
-    while pending and version is None:
-        node = pending.pop()
-        if node.get("name") == name:
-            version = node["version"]
-        pending.extend(node.get("dependencies", []))
-    if version is None:
-        raise RuntimeError(f"{name} is not in this module's dependency graph")
-    (definition,) = [
-        json.loads(line)
-        for line in subprocess.check_output(
-            [*command, "mod", "show_repo", f"@{name}", "--output=streamed_jsonproto"],
-            cwd=root,
-            text=True,
-        ).splitlines()
-        if line
-    ]
-    attributes = {
-        attribute["name"]: attribute
-        for attribute in definition["attribute"]
-        if attribute.get("explicitlySpecified")
-    }
-    subprocess.run(
-        [*command, "fetch", f"--repo=@{name}"], cwd=root, check=True, stdout=sys.stderr
-    )
-    output_base = Path(
-        subprocess.check_output(
-            [*command, "info", "output_base"], cwd=root, text=True
-        ).strip()
-    )
-    module = registry / "modules" / name / version
-    module.mkdir(parents=True)
-    shutil.copyfile(
-        output_base / "external" / definition["canonicalName"] / "MODULE.bazel",
-        module / "MODULE.bazel",
-    )
-    (module / "source.json").write_text(
-        json.dumps(
-            {
-                "url": attributes["urls"]["stringListValue"][0],
-                "integrity": attributes["integrity"]["stringValue"],
-                "strip_prefix": attributes["strip_prefix"]["stringValue"],
-            }
-        )
-    )
 
 
 def main() -> None:
@@ -143,7 +83,7 @@ def main() -> None:
                 }
             )
         )
-        register_dependency(args.bazel, root, registry, _ARCHIVE_STORE)
+        register(args.bazel, root, registry, ARCHIVE_STORE)
         npm_consumer = producer / "npm_consumer"
         shutil.copytree(
             root / "tests/npm_consumer",
