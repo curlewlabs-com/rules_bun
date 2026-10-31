@@ -118,17 +118,16 @@ py_test(
 starlark_doc_extract(
     name = "api_docs",
     src = "defs.bzl",
-    deps = [
-        ":bzl_srcs",
+    deps = [":api_deps"],
+)
+
+# What defs.bzl loads, for the API documentation (//docs:npm_api).
+filegroup(
+    name = "api_deps",
+    srcs = glob(["*.bzl"]) + [
         "@curlewlabs_rules_archive_store//archive_store:archive_parts.bzl",
         "@curlewlabs_rules_archive_store//archive_store:archives.bzl",
     ],
-)
-
-filegroup(
-    name = "bzl_srcs",
-    srcs = glob(["*.bzl"]),
-    visibility = ["//visibility:private"],
 )
 
 bun_unit_test(

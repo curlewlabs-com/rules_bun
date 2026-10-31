@@ -11,6 +11,68 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+# The npm rules' dependency outside the Bazel Central Registry, which the
+# local registry serves as this module's own build resolves it.
+_ARCHIVE_STORE = "curlewlabs_rules_archive_store"
+
+
+def register_dependency(bazel: str, root: Path, registry: Path, name: str) -> None:
+    """Serve `name` from the local registry, from the release this module's
+    MODULE.bazel overrides it with: its version and MODULE.bazel as Bazel
+    resolved them, and its archive's URL, integrity and strip prefix."""
+    command = [bazel, "--ignore_all_rc_files"]
+    graph = json.loads(
+        subprocess.check_output(
+            [*command, "mod", "graph", "--output=json"], cwd=root, text=True
+        )
+    )
+    pending = [graph]
+    version = None
+    while pending and version is None:
+        node = pending.pop()
+        if node.get("name") == name:
+            version = node["version"]
+        pending.extend(node.get("dependencies", []))
+    if version is None:
+        raise RuntimeError(f"{name} is not in this module's dependency graph")
+    (definition,) = [
+        json.loads(line)
+        for line in subprocess.check_output(
+            [*command, "mod", "show_repo", f"@{name}", "--output=streamed_jsonproto"],
+            cwd=root,
+            text=True,
+        ).splitlines()
+        if line
+    ]
+    attributes = {
+        attribute["name"]: attribute
+        for attribute in definition["attribute"]
+        if attribute.get("explicitlySpecified")
+    }
+    subprocess.run(
+        [*command, "fetch", f"--repo=@{name}"], cwd=root, check=True, stdout=sys.stderr
+    )
+    output_base = Path(
+        subprocess.check_output(
+            [*command, "info", "output_base"], cwd=root, text=True
+        ).strip()
+    )
+    module = registry / "modules" / name / version
+    module.mkdir(parents=True)
+    shutil.copyfile(
+        output_base / "external" / definition["canonicalName"] / "MODULE.bazel",
+        module / "MODULE.bazel",
+    )
+    (module / "source.json").write_text(
+        json.dumps(
+            {
+                "url": attributes["urls"]["stringListValue"][0],
+                "integrity": attributes["integrity"]["stringValue"],
+                "strip_prefix": attributes["strip_prefix"]["stringValue"],
+            }
+        )
+    )
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -66,9 +128,35 @@ def main() -> None:
                 }
             )
         )
+        register_dependency(args.bazel, root, registry, _ARCHIVE_STORE)
+        npm_consumer = producer / "npm_consumer"
+        shutil.copytree(
+            root / "tests/npm_consumer",
+            npm_consumer,
+            ignore=shutil.ignore_patterns("bazel-*", "MODULE.bazel.lock"),
+        )
         output = producer / "bazel"
         exported = staging / "exported"
         try:
+            # The npm rules as a dependency rather than the root module: their
+            # labels, the hub they generate, and rules_archive_store resolved
+            # from the registry.
+            subprocess.run(
+                [
+                    args.bazel,
+                    "--ignore_all_rc_files",
+                    f"--output_user_root={output}",
+                    "test",
+                    "//...",
+                    "--ignore_dev_dependency",
+                    f"--registry={registry.as_uri()}",
+                    "--registry=https://bcr.bazel.build",
+                    "--@curlewlabs_rules_bun//npm:bun=//:bun",
+                    "--test_output=errors",
+                ],
+                cwd=npm_consumer,
+                check=True,
+            )
             subprocess.run(
                 [
                     sys.executable,
@@ -85,16 +173,17 @@ def main() -> None:
                 check=True,
             )
         finally:
-            subprocess.run(
-                [
-                    args.bazel,
-                    "--ignore_all_rc_files",
-                    f"--output_user_root={output}",
-                    "shutdown",
-                ],
-                cwd=consumer,
-                check=True,
-            )
+            for module_root in (npm_consumer, consumer):
+                subprocess.run(
+                    [
+                        args.bazel,
+                        "--ignore_all_rc_files",
+                        f"--output_user_root={output}",
+                        "shutdown",
+                    ],
+                    cwd=module_root,
+                    check=True,
+                )
         shutil.rmtree(producer)
         print(
             "Removed source archive, consumer module, and Bazel acquisition state.",

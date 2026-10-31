@@ -1,2 +1,3 @@
 examples/consumer
 tests/state
+tests/npm_consumer

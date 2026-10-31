@@ -7,3 +7,11 @@ stardoc(
     stamp = 0,
     symbol_names = ["bun_install"],
 )
+
+stardoc(
+    name = "npm_api",
+    out = "npm-api.md",
+    input = "//npm:defs.bzl",
+    stamp = 0,
+    deps = ["//npm:api_deps"],
+)
