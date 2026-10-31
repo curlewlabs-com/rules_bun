@@ -16,6 +16,21 @@ from pathlib import Path
 _ARCHIVE_STORE = "curlewlabs_rules_archive_store"
 
 
+def remove_tree(path: Path) -> None:
+    """Remove `path`, whose Bazel outputs include read-only directories, the
+    npm rules' per-file units among them."""
+    for directory in [
+        path,
+        *(
+            entry
+            for entry in path.rglob("*")
+            if entry.is_dir() and not entry.is_symlink()
+        ),
+    ]:
+        directory.chmod(directory.stat().st_mode | 0o700)
+    shutil.rmtree(path)
+
+
 def register_dependency(bazel: str, root: Path, registry: Path, name: str) -> None:
     """Serve `name` from the local registry, from the release this module's
     MODULE.bazel overrides it with: its version and MODULE.bazel as Bazel
@@ -184,7 +199,7 @@ def main() -> None:
                     cwd=module_root,
                     check=True,
                 )
-        shutil.rmtree(producer)
+        remove_tree(producer)
         print(
             "Removed source archive, consumer module, and Bazel acquisition state.",
             flush=True,

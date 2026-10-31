@@ -8,9 +8,9 @@ filegroup(
 
 npm_graph(
     name = "npm_graph",
+    out = "npm_graph.json",
     bunfig = "bunfig.toml",
     lock = "bun.lock",
-    out = "npm_graph.json",
 )
 
 npm_graph_test(
