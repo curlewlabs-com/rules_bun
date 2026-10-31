@@ -1,0 +1,103 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_test.bzl", "py_test")
+load("//npm:defs.bzl", "npm_bun_install_test", "npm_graph", "npm_graph_test", "npm_tree_binary", "npm_tree_test")
+
+exports_files([
+    "npm_graph.json",
+    "npm_install_exemptions.json",
+])
+
+npm_graph(
+    name = "npm_graph",
+    out = "npm_graph.json",
+    bunfig = "bunfig.toml",
+    lock = "bun.lock",
+)
+
+# Every node a fixture workspace reaches, whose units the test builds: the
+# cycle, the peer variants, the platform packages, the alias and the
+# workspace's own copy.
+npm_graph_test(
+    name = "npm_graph_targets_test",
+    size = "small",
+    # Every exemption against the locked releases of its package, so a stale
+    # one fails here rather than waiting for a consumer to reach the package.
+    checks = ["@npm//:install_exemptions"],
+    # A tool's packages are exec-configured, where a check must run too.
+    exec_packages = ["@npm//:node_modules/esbuild"],
+    packages = [
+        "@npm//:node_modules/@eslint-community/eslint-utils",
+        "@npm//:node_modules/esbuild",
+        "@npm//:node_modules/eslint",
+        "@npm//:node_modules/semver",
+        "@npm//:node_modules/semver-six",
+        "@npm//:packages/tool/node_modules/semver",
+    ],
+)
+
+npm_bun_install_test(
+    name = "npm_bun_install_test",
+    size = "medium",
+    bunfig = "bunfig.toml",
+    graph = "npm_graph.json",
+    lock = "bun.lock",
+    manifests = [
+        "package.json",
+        "packages/tool/package.json",
+    ],
+    tarballs = "@npm//:tarballs",
+)
+
+py_binary(
+    name = "tree_tool_runner",
+    testonly = True,
+    srcs = ["tree_tool_test.py"],
+    legacy_create_init = 0,
+    main = "tree_tool_test.py",
+)
+
+npm_tree_test(
+    name = "npm_tree_test",
+    size = "small",
+    args = [
+        "--bun",
+        "$(rootpath //npm:bun)",
+    ],
+    data = ["//npm:bun"],
+    links = [
+        "@npm//:node_modules/esbuild",
+        "@npm//:node_modules/eslint",
+        "@npm//:node_modules/semver",
+        "@npm//:node_modules/semver-six",
+        "@npm//:packages/tool/node_modules/semver",
+    ],
+    test = ":tree_tool_runner",
+)
+
+py_binary(
+    name = "tree_probe",
+    testonly = True,
+    srcs = ["tree_probe.py"],
+    legacy_create_init = 0,
+    main = "tree_probe.py",
+)
+
+npm_tree_binary(
+    name = "tree_probe_binary",
+    testonly = True,
+    binary = ":tree_probe",
+    links = ["@npm//:node_modules/semver"],
+)
+
+py_test(
+    name = "tree_binary_test",
+    size = "small",
+    srcs = ["tree_binary_test.py"],
+    args = [
+        "--launcher",
+        "$(rootpath :tree_probe_binary)",
+    ],
+    data = [":tree_probe_binary"],
+    legacy_create_init = 0,
+    main = "tree_binary_test.py",
+)

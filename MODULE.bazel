@@ -3,6 +3,22 @@ module(
     version = "0.8.0",
 )
 
+# The npm rules (//npm). Their units and tarball checks are Python, and their
+# macOS archive representation and tar member checks are rules_archive_store's.
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "rules_python", version = "2.4.2")
+bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.1.0")
+
+# rules_archive_store is not in the Bazel Central Registry, and an override
+# binds only the root module, so a consumer declares its own (docs/npm.md
+# sec."Setup"); this one serves this module's own builds.
+archive_override(
+    module_name = "curlewlabs_rules_archive_store",
+    integrity = "sha256-/DFoKgXonK3xqkqODoiIdoGsLXVoF1q20/g2vfo3czc=",
+    strip_prefix = "rules_archive_store-0.1.0",
+    urls = ["https://github.com/curlewlabs-com/rules_archive_store/releases/download/v0.1.0/rules_archive_store-0.1.0.tar.gz"],
+)
+
 bazel_dep(name = "rules_nodejs", version = "6.7.5", dev_dependency = True)
 
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)
@@ -20,3 +36,11 @@ bazel_dep(name = "stardoc", version = "0.8.1", dev_dependency = True)
 # Stardoc's older protobuf default compiles protoc with the host C++ toolchain.
 # Prebuilt protoc keeps documentation generation independent of Xcode/SDK headers.
 bazel_dep(name = "protobuf", version = "36.2", dev_dependency = True)
+
+# The npm rules' fixture workspace (tests/npm), as a consumer declares its graph.
+npm = use_extension("//npm:extensions.bzl", "npm", dev_dependency = True)
+npm.graph(
+    exemptions = "//tests/npm:npm_install_exemptions.json",
+    graph = "//tests/npm:npm_graph.json",
+)
+use_repo(npm, "npm")

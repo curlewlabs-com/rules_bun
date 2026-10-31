@@ -1,0 +1,143 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("@rules_python//python:py_library.bzl", "py_library")
+load("@rules_python//python:py_test.bzl", "py_test")
+load(":bun_unit_test.bzl", "bun_unit_test")
+load(":flags.bzl", "bool_flag", "unset_bun")
+load(":platforms.bzl", "NPM_PLATFORMS")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "defs.bzl",
+    "extensions.bzl",
+    "flags.bzl",
+    "npm_graph.bzl",
+    "npm_graph.ts",
+    "npm_lock.ts",
+    "npm_package.bzl",
+    "npm_tree.bzl",
+    "platforms.bzl",
+])
+
+# The Bun the rules run: the translator, the linked tree helper, and the
+# install test. rules_bun acquires none, so a consumer sets it
+# (docs/npm.md sec."Setup").
+label_flag(
+    name = "bun",
+    build_setting_default = ":unset_bun",
+)
+
+unset_bun(
+    name = "unset_bun",
+    visibility = ["//visibility:private"],
+)
+
+# The linked tree helper's Bun under a label of its own (npm_tree.bzl's
+# NPM_TREE_ATTRS).
+alias(
+    name = "tree_bun",
+    actual = ":bun",
+)
+
+# Whether macOS units are archives, whose trees rules_archive_store's helper
+# builds and publishes. Off, every platform's units are per-file. Set it only
+# where the executor provides the store (docs/npm.md sec."Units").
+bool_flag(
+    name = "macos_archives",
+    build_setting_default = False,
+)
+
+[
+    config_setting(
+        name = platform.name,
+        constraint_values = [
+            "@platforms//os:" + platform.constraints[0],
+            "@platforms//cpu:" + platform.constraints[1],
+        ],
+    )
+    for platform in NPM_PLATFORMS
+]
+
+py_binary(
+    name = "npm_tarball",
+    srcs = ["npm_tarball.py"],
+    legacy_create_init = 0,
+    main = "npm_tarball.py",
+    deps = [
+        "@curlewlabs_rules_archive_store//archive_store:archive_parts_lib",
+        "@curlewlabs_rules_archive_store//archive_store:archive_to_tar_lib",
+    ],
+)
+
+py_library(
+    name = "npm_tarball_lib",
+    srcs = ["npm_tarball.py"],
+    imports = ["."],
+    visibility = ["//visibility:private"],
+    deps = [
+        "@curlewlabs_rules_archive_store//archive_store:archive_parts_lib",
+        "@curlewlabs_rules_archive_store//archive_store:archive_to_tar_lib",
+    ],
+)
+
+py_test(
+    name = "npm_tarball_test",
+    size = "small",
+    srcs = ["npm_tarball_test.py"],
+    legacy_create_init = 0,
+    main = "npm_tarball_test.py",
+    deps = [
+        ":npm_tarball_lib",
+        "@curlewlabs_rules_archive_store//archive_store:archive_to_tar_lib",
+    ],
+)
+
+py_binary(
+    name = "npm_bun_install",
+    srcs = ["npm_bun_install.py"],
+    legacy_create_init = 0,
+    main = "npm_bun_install.py",
+)
+
+py_library(
+    name = "npm_bun_install_lib",
+    srcs = ["npm_bun_install.py"],
+    imports = ["."],
+    visibility = ["//visibility:private"],
+)
+
+py_test(
+    name = "test_npm_bun_install",
+    size = "small",
+    srcs = ["test_npm_bun_install.py"],
+    legacy_create_init = 0,
+    main = "test_npm_bun_install.py",
+    deps = [":npm_bun_install_lib"],
+)
+
+starlark_doc_extract(
+    name = "api_docs",
+    src = "defs.bzl",
+    deps = [
+        ":bzl_srcs",
+        "@curlewlabs_rules_archive_store//archive_store:archive_parts.bzl",
+        "@curlewlabs_rules_archive_store//archive_store:archives.bzl",
+    ],
+)
+
+filegroup(
+    name = "bzl_srcs",
+    srcs = glob(["*.bzl"]),
+    visibility = ["//visibility:private"],
+)
+
+bun_unit_test(
+    name = "npm_graph_translator_test",
+    size = "small",
+    srcs = [
+        "npm_graph.test.ts",
+        "npm_graph.ts",
+        "npm_lock.test.ts",
+        "npm_lock.ts",
+    ],
+)
