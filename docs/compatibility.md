@@ -40,6 +40,16 @@ installer implementation details, and development extensions are private.
 Consumers must not depend on them. Example restoration code illustrates a
 trusted closure; it is not a general-purpose untrusted-archive reader.
 
+The npm rules' public surface is what
+[`@curlewlabs_rules_bun//npm:defs.bzl`](../npm/defs.bzl) exports, the `npm`
+extension in [`//npm:extensions.bzl`](../npm/extensions.bzl) and its `graph`
+tag, the `//npm:bun` and `//npm:macos_archives` flags, and the hub's
+workspace links, `:tarballs`, `:install_exemptions` and `workspaces.bzl`
+([npm.md](npm.md)). The graph file's fields are the translator's and may change
+between minor releases; regenerate it with `npm_graph` after an upgrade. The
+hub's other targets, named for releases, nodes and cycles, are private. No npm
+rule runs a lifecycle script ([Install steps](npm.md#install-steps)).
+
 Installation accepts the original root manifest and text `bun.lock`, together
 with explicitly declared text inputs placed at root-relative paths. Binary
 installation inputs and the legacy binary `bun.lockb` are outside the API.

@@ -1,0 +1,14 @@
+{
+  "name": "npm-rules-fixture",
+  "private": true,
+  "workspaces": [
+    "packages/tool"
+  ],
+  "devDependencies": {
+    "@eslint-community/eslint-utils": "4.9.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.14.0",
+    "semver": "7.8.5",
+    "semver-six": "npm:semver@6.3.1"
+  }
+}

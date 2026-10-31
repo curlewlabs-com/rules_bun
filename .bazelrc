@@ -1,0 +1,2 @@
+# This module's own builds run the Bun its tests download for the host.
+build --//npm:bun=@test_bun//:bun

@@ -11,6 +11,23 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+from archive_store_pin import ARCHIVE_STORE, register
+
+
+def remove_tree(path: Path) -> None:
+    """Remove `path`, whose Bazel outputs include read-only directories, the
+    npm rules' per-file units among them."""
+    for directory in [
+        path,
+        *(
+            entry
+            for entry in path.rglob("*")
+            if entry.is_dir() and not entry.is_symlink()
+        ),
+    ]:
+        directory.chmod(directory.stat().st_mode | 0o700)
+    shutil.rmtree(path)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -66,9 +83,35 @@ def main() -> None:
                 }
             )
         )
+        register(args.bazel, root, registry, ARCHIVE_STORE)
+        npm_consumer = producer / "npm_consumer"
+        shutil.copytree(
+            root / "tests/npm_consumer",
+            npm_consumer,
+            ignore=shutil.ignore_patterns("bazel-*", "MODULE.bazel.lock"),
+        )
         output = producer / "bazel"
         exported = staging / "exported"
         try:
+            # The npm rules as a dependency rather than the root module: their
+            # labels, the hub they generate, and rules_archive_store resolved
+            # from the registry.
+            subprocess.run(
+                [
+                    args.bazel,
+                    "--ignore_all_rc_files",
+                    f"--output_user_root={output}",
+                    "test",
+                    "//...",
+                    "--ignore_dev_dependency",
+                    f"--registry={registry.as_uri()}",
+                    "--registry=https://bcr.bazel.build",
+                    "--@curlewlabs_rules_bun//npm:bun=//:bun",
+                    "--test_output=errors",
+                ],
+                cwd=npm_consumer,
+                check=True,
+            )
             subprocess.run(
                 [
                     sys.executable,
@@ -85,17 +128,18 @@ def main() -> None:
                 check=True,
             )
         finally:
-            subprocess.run(
-                [
-                    args.bazel,
-                    "--ignore_all_rc_files",
-                    f"--output_user_root={output}",
-                    "shutdown",
-                ],
-                cwd=consumer,
-                check=True,
-            )
-        shutil.rmtree(producer)
+            for module_root in (npm_consumer, consumer):
+                subprocess.run(
+                    [
+                        args.bazel,
+                        "--ignore_all_rc_files",
+                        f"--output_user_root={output}",
+                        "shutdown",
+                    ],
+                    cwd=module_root,
+                    check=True,
+                )
+        remove_tree(producer)
         print(
             "Removed source archive, consumer module, and Bazel acquisition state.",
             flush=True,

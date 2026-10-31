@@ -35,7 +35,10 @@ def main() -> None:
         stdout=sys.stderr,
     )
     command = [args.bazel, "--ignore_all_rc_files"]
-    # Root metadata does not require evaluating the development extensions.
+    # Root metadata, which `mod graph` reads without evaluating extensions.
+    # It keeps development dependencies, since ignoring them also ignores the
+    # overrides through which rules_archive_store, outside the Bazel Central
+    # Registry, resolves.
     module = json.loads(
         subprocess.check_output(
             [
@@ -44,7 +47,6 @@ def main() -> None:
                 "graph",
                 "--output=json",
                 "--depth=1",
-                "--ignore_dev_dependency",
                 "--lockfile_mode=off",
             ],
             cwd=root,
@@ -64,18 +66,25 @@ def main() -> None:
     revision = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
+    # Each generated API document, by its target, at its path in the archive.
+    documents = {"//docs:api": "docs/api.md", "//docs:npm_api": "docs/npm-api.md"}
     subprocess.run(
-        [*command, "build", "//docs:api"], cwd=root, check=True, stdout=sys.stderr
+        [*command, "build", *documents], cwd=root, check=True, stdout=sys.stderr
     )
     execution = Path(
         subprocess.check_output(
             [*command, "info", "execution_root"], cwd=root, text=True
         ).strip()
     )
-    doc_path = subprocess.check_output(
-        [*command, "cquery", "//docs:api", "--output=files"], cwd=root, text=True
-    ).strip()
-    documentation = (execution / doc_path).read_bytes()
+    documentation = {
+        path: (
+            execution
+            / subprocess.check_output(
+                [*command, "cquery", target, "--output=files"], cwd=root, text=True
+            ).strip()
+        ).read_bytes()
+        for target, path in documents.items()
+    }
     prefix = f"rules_bun-{version}"
     output = root / "dist"
     output.mkdir(exist_ok=True)
@@ -91,7 +100,7 @@ def main() -> None:
         tarfile.open(fileobj=compressed, mode="w") as packaged,
     ):
         for member in committed.getmembers():
-            if member.name == f"{prefix}/docs/api.md":
+            if member.name.removeprefix(f"{prefix}/") in documentation:
                 raise ValueError("Generated API documentation must not be tracked")
             member.mtime = 0
             member.uid = member.gid = 0
@@ -101,10 +110,11 @@ def main() -> None:
                 member,
                 committed.extractfile(member) if member.isfile() else None,
             )
-        api = tarfile.TarInfo(f"{prefix}/docs/api.md")
-        api.size = len(documentation)
-        api.mode = 0o644
-        packaged.addfile(api, io.BytesIO(documentation))
+        for path, content in documentation.items():
+            api = tarfile.TarInfo(f"{prefix}/{path}")
+            api.size = len(content)
+            api.mode = 0o644
+            packaged.addfile(api, io.BytesIO(content))
     digest = hashlib.sha256(archive.read_bytes()).digest()
     integrity = "sha256-" + base64.b64encode(digest).decode()
     (output / "SHA256SUMS").write_text(f"{digest.hex()}  {archive.name}\n")
@@ -156,8 +166,12 @@ archive_override(
 )
 ```
 
-The archive includes generated API documentation at `docs/api.md`, the runnable
-independent consumer, and license notices. Runtimes and npm packages are
+The npm rules depend on `curlewlabs_rules_archive_store`, which is not a BCR
+entry either, so a module using them also overrides that module
+(`docs/npm.md`, "Setup").
+
+The archive includes generated API documentation at `docs/api.md` and
+`docs/npm-api.md`, the runnable independent consumer, and license notices. Runtimes and npm packages are
 separate downloads with their own licenses. Acquisition is unsandboxed;
 consumers supply their own execution isolation. This release is not a BCR entry.
 """)

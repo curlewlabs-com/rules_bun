@@ -24,7 +24,10 @@ jobs:
         # Standard public-repository runners avoid metered larger runners.
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # Intel macOS runs slowest: the npm fixture's cold units in both
+    # representations took about nine minutes there before bun_install's
+    # checks and the release archive's.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -37,7 +40,14 @@ jobs:
           repository-cache: false
           cache-save: false
       - name: Extract public API documentation
-        run: bazel build //bun:api_docs
+        run: bazel build //bun:api_docs //npm:api_docs
+      - name: Per-package npm rules
+        run: bazel test //npm/... //tests/npm/...
+      # Archive units are macOS-only; with no store set the helper expands
+      # into a private one, which exercises every step but reuse.
+      - name: Per-package npm rules with macOS archive units
+        if: runner.os == 'macOS'
+        run: bazel test --//npm:macos_archives //tests/npm/...
       - name: Workspace acquisition and rejection cases
         run: python3 tests/check.py
       - name: Incremental and concurrent acquisition

@@ -1,0 +1,5 @@
+[install]
+linker = "isolated"
+# The one name Bun's isolated store links into its fallback directory, so the
+# fixture covers a hoisted node.
+hoistPattern = ["semver"]

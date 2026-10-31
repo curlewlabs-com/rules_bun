@@ -5,8 +5,13 @@ supplies verified Bun and Node binaries; Bun supplies frozen lockfile resolution
 and platform package selection. The custom rule supplies the input layout and
 exports the resulting files and symlinks.
 
+The module also provides [per-package npm rules](docs/npm.md) under `//npm`,
+which translate `bun.lock` into a checked-in graph and build one unit per locked
+package, so a bump rebuilds only what it changed. The rest of this README
+describes `bun_install`.
+
 This module is an acquisition prototype. It is not published in the Bazel
-Central Registry. It does not provide build/test rules or an execution sandbox.
+Central Registry. It does not provide an execution sandbox.
 
 ## Versions
 
@@ -37,7 +42,9 @@ Source archives, checksums, and installation snippets are published on the
 Load `bun_install` from `//bun:repositories.bzl` through `use_repo_rule` or your
 module extension. The runnable setup in [MODULE.bazel](MODULE.bazel) and
 [tests/deps.bzl](tests/deps.bzl) acquires Bun with Bazel's `http_archive` and
-Node with `rules_nodejs`. The module itself has no non-dev Bazel dependencies.
+Node with `rules_nodejs`. `bun_install` loads none of the module's Bazel
+dependencies, which the npm rules take: `platforms`, `rules_python` and
+`curlewlabs_rules_archive_store`.
 
 ```starlark
 bun_install = use_repo_rule("@curlewlabs_rules_bun//bun:repositories.bzl", "bun_install")
@@ -166,7 +173,14 @@ development environment:
 python3 tests/check.py --bazel /path/to/bazel
 python3 tests/check_consumer.py --bazel /path/to/bazel
 python3 tests/check_state.py --bazel /path/to/bazel
+bazel test //npm/... //tests/npm/...
+bazel test --//npm:macos_archives //tests/npm/...   # macOS only
 ```
+
+The npm tests translate the fixture workspace under [tests/npm](tests/npm),
+build every unit it reaches, run its tools from linked trees in each
+representation, and compare the graph with Bun's own install of the fixture
+lock ([Testing the translation](docs/npm.md#testing-the-translation)).
 
 The integration check acquires real packages, restores their exported payload,
 resolves a workspace dependency, and runs native esbuild with both runtimes. It

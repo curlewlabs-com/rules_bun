@@ -1,0 +1,8 @@
+{
+  "esbuild": {
+    "postinstall": {
+      "sha256": "912d4d8f507b7b392ae422a459f98da94669a742e4cc43cfe061e630ee2846fe",
+      "reason": "It links the @esbuild/<os>-<cpu> optional dependency's binary over bin/esbuild, downloading one when that dependency is missing. The graph links the dependency, and bin/esbuild finds its binary at run time without the script."
+    }
+  }
+}

@@ -1,0 +1,15 @@
+module(name = "rules_bun_npm_consumer")
+
+# tests/check_consumer.py serves both modules from a local registry, the
+# release candidate's own bytes, so this module carries no archive_override; a
+# consumer of a published release declares one for each (docs/npm.md
+# sec."Setup").
+bazel_dep(name = "curlewlabs_rules_bun", version = "0.8.0")
+bazel_dep(name = "rules_python", version = "2.4.2")
+
+npm = use_extension("@curlewlabs_rules_bun//npm:extensions.bzl", "npm")
+npm.graph(graph = "//:npm_graph.json")
+use_repo(npm, "npm")
+
+bun = use_extension("//:deps.bzl", "deps")
+use_repo(bun, "consumer_bun")

@@ -13,6 +13,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import TypedDict
 
+from archive_store_pin import ARCHIVE_STORE, override
+
 
 class Lifecycle(TypedDict):
     identity: str
@@ -46,10 +48,12 @@ def runtime_sources(bazel: str, root: Path) -> dict[str, Path]:
     }
 
 
-def prepare(root: Path, directory: Path) -> None:
+def prepare(root: Path, directory: Path, overrides: str) -> None:
     shutil.copytree(root / "tests/state", directory)
     for name in [".bazelversion", "package.json", "bun.lock", "run.py", "demo.mjs"]:
         shutil.copy2(root / "examples/consumer" / name, directory / name)
+    with (directory / "MODULE.bazel").open("a") as module:
+        module.write("\n" + overrides)
 
 
 def state(directory: Path, identity: str, barrier: str = "") -> None:
@@ -313,8 +317,9 @@ def main() -> None:
         directories = [staging / "left", staging / "right"]
         reused = [staging / "reused-a", staging / "reused-b"]
         identified = staging / "identified"
+        overrides = override(args.bazel, root, ARCHIVE_STORE)
         for directory in [*directories, *reused, identified]:
-            prepare(root, directory)
+            prepare(root, directory, overrides)
         left = directories[0]
         command = [args.bazel, "--ignore_all_rc_files", f"--output_user_root={output}"]
         try:

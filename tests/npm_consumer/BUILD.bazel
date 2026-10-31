@@ -1,0 +1,47 @@
+load("@curlewlabs_rules_bun//npm:defs.bzl", "npm_bun_install_test", "npm_graph", "npm_graph_test", "npm_tree_test")
+load("@rules_python//python:py_binary.bzl", "py_binary")
+
+filegroup(
+    name = "bun",
+    srcs = ["@consumer_bun//:bun"],
+)
+
+npm_graph(
+    name = "npm_graph",
+    out = "npm_graph.json",
+    bunfig = "bunfig.toml",
+    lock = "bun.lock",
+)
+
+npm_graph_test(
+    name = "npm_graph_targets_test",
+    size = "small",
+    packages = ["@npm//:node_modules/semver"],
+)
+
+npm_bun_install_test(
+    name = "npm_bun_install_test",
+    size = "small",
+    bunfig = "bunfig.toml",
+    graph = "npm_graph.json",
+    lock = "bun.lock",
+    manifests = ["package.json"],
+    tarballs = "@npm//:tarballs",
+)
+
+py_binary(
+    name = "semver_runner",
+    testonly = True,
+    srcs = ["semver_test.py"],
+    legacy_create_init = 0,
+    main = "semver_test.py",
+)
+
+npm_tree_test(
+    name = "semver_test",
+    size = "small",
+    args = ["$(rootpath :bun)"],
+    data = [":bun"],
+    links = ["@npm//:node_modules/semver"],
+    test = ":semver_runner",
+)
