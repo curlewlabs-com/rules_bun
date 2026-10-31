@@ -35,7 +35,10 @@ def main() -> None:
         stdout=sys.stderr,
     )
     command = [args.bazel, "--ignore_all_rc_files"]
-    # Root metadata does not require evaluating the development extensions.
+    # Root metadata, which `mod graph` reads without evaluating extensions.
+    # It keeps development dependencies, since ignoring them also ignores the
+    # overrides through which rules_archive_store, outside the Bazel Central
+    # Registry, resolves.
     module = json.loads(
         subprocess.check_output(
             [
@@ -44,7 +47,6 @@ def main() -> None:
                 "graph",
                 "--output=json",
                 "--depth=1",
-                "--ignore_dev_dependency",
                 "--lockfile_mode=off",
             ],
             cwd=root,
