@@ -360,7 +360,7 @@
       },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "7UAWgxsE2yN01N1ITMsrBfdAT7PZyed529e7fMVLcI0=",
-        "usagesDigest": "AFebK2zaiyCrq6eD6M6hc1bkxoZ+2bP9zhrR/8bj+z0=",
+        "usagesDigest": "h09Q5cbcVppRm+vbfBHfFUPjXGI+eMce434IvQVEyPA=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
@@ -568,7 +568,7 @@
       },
       "os:osx,arch:aarch64": {
         "bzlTransitiveDigest": "LpyWjBP1WiBLBBRC1FoTiv+e2T6XouZXXjt5IVUpHhg=",
-        "usagesDigest": "DfQVG/1uBiKToaQwS3ZruHQ6iVtMUs4P9w4O3Ni/hIA=",
+        "usagesDigest": "vChLpaNvJhZJvBJuEXV4F/8IOtFptGOiNmhjSWj7JQ8=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
