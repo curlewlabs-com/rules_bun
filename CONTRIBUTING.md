@@ -11,7 +11,8 @@ Curlew Labs maintains this project. Jeffrey Wall
 and approves releases. Use issues for reproducible defects and proposals;
 use [private vulnerability reporting](SECURITY.md) for security concerns.
 
-Changes land through pull requests with passing CI and maintainer review.
+Changes land through pull requests with passing CI and maintainer review;
+[toolchain updates](#toolchain-updates) merge on passing CI alone.
 Public API changes must follow the [compatibility policy](docs/compatibility.md)
 and update consumer documentation and behavior coverage in the same change.
 Fixed version tags and published release artifacts must not be replaced.
@@ -43,6 +44,24 @@ Bazel's Stardoc-compatible binary proto. It keeps the attribute contract next
 to its implementation; the README explains the acquisition/execution boundary.
 The `//docs:api` target renders Markdown with Stardoc. Release archives include
 that generated reference at `docs/api.md`; no documentation site is required.
+
+## Toolchain updates
+
+[Renovate](https://docs.renovatebot.com/) proposes each new Bun release, each
+new minor and patch release of Node and Bazel, and each new release of the
+workflow actions, once it has aged, and merges the pull request when CI passes.
+A new major of Node or Bazel is moved by hand. The `# renovate:` comment above a
+pin tells Renovate what the literal below is. After moving a version it runs
+
+```sh
+python3 tools/refresh_toolchain.py
+```
+
+which writes each host's Bun archive digest from the release's
+`SHASUMS256.txt` and the versions and license links in the README. Run the same
+command after moving a pin by hand. `MODULE.bazel.lock` is not part of it:
+Bazel rewrites the host's entries on its next run. The older runtimes in
+`tests/runtime_updates.bzl` do not move.
 
 ## Ruleset structure
 

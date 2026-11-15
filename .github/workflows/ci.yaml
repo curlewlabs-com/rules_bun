@@ -42,7 +42,7 @@ jobs:
       - name: Extract public API documentation
         run: bazel build //bun:api_docs //npm:api_docs
       - name: Per-package npm rules
-        run: bazel test //npm/... //tests/npm/...
+        run: bazel test //npm/... //tests/npm/... //tools/...
       # Archive units are macOS-only; with no store set the helper expands
       # into a private one, which exercises every step but reuse.
       - name: Per-package npm rules with macOS archive units

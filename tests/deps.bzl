@@ -18,6 +18,7 @@ def _deps(ctx):
     archive, sha256, node = _BUN[platform]
     http_archive(
         name = "test_bun",
+        # renovate: datasource=github-releases depName=oven-sh/bun extractVersion=^bun-v(?<version>.+)$
         urls = ["https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-" + archive + ".zip"],
         sha256 = sha256,
         strip_prefix = "bun-" + archive,
