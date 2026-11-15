@@ -39,6 +39,7 @@ type GraphPackage = {
   repository: string;
   os?: string[];
   cpu?: string[];
+  libc?: string[];
   bin?: Record<string, string>;
   edges: Record<string, string>;
   cycle?: string;
@@ -199,6 +200,11 @@ export function translate(
       integrity,
     };
     const deps = dependencies(registry, path, meta);
+    for (const [name, target] of Object.entries(deps)) {
+      if (!(name in meta.optionalDependencies)) {
+        requireOptional(path, name, registry[target]);
+      }
+    }
     entries[path] = {
       path,
       name,
@@ -210,6 +216,13 @@ export function translate(
         .sort(),
     };
   }
+
+  // Releases whose lock entry restricts libc, which no peer edge may link.
+  const libcRepositories = new Set(
+    Object.values(entries)
+      .filter((entry) => entry.meta.libc !== undefined)
+      .map((entry) => entry.repository),
+  );
 
   // The peer names each install path's subtree takes from above it: its own
   // peers, and its dependencies' that it does not provide itself.
@@ -325,13 +338,21 @@ export function translate(
           );
         }
       }
-      if (target !== undefined) edges[name] = target;
+      if (target === undefined) continue;
+      // Bun's libc filter skips peer edges, optional ones included.
+      if (libcRepositories.has(packages[target].repository)) {
+        throw new Error(
+          `${entry.path}: peer ${name} links ${target}, which has a libc constraint, ${LIBC_ON_OPTIONAL_EDGES}`,
+        );
+      }
+      edges[name] = target;
     }
-    const { os, cpu, bin } = entry.meta;
+    const { os, cpu, libc, bin } = entry.meta;
     return {
       repository: entry.repository,
       ...(os === undefined ? {} : { os }),
       ...(cpu === undefined ? {} : { cpu }),
+      ...(libc === undefined ? {} : { libc }),
       ...(bin === undefined ? {} : { bin }),
       edges,
     };
@@ -386,6 +407,13 @@ export function translate(
       } else if (!(name in workspace.optionalDependencies)) {
         throw new Error(
           `workspace ${directory || "."}: dependency ${name} resolves to no locked package`,
+        );
+      }
+      if (name in deps && !(name in workspace.optionalDependencies)) {
+        requireOptional(
+          `workspace ${directory || "."}`,
+          name,
+          registry[deps[name]],
         );
       }
     }
@@ -538,8 +566,15 @@ export function canonical(
 ): Map<string, string> {
   const ids = Object.keys(packages).sort();
   const metadata = (id: string) => {
-    const { repository, os, cpu, bin } = packages[id];
-    return [repository, os ?? null, cpu ?? null, bin ?? null];
+    const { repository, os, cpu, libc, bin } = packages[id];
+    // libc only when present, so a graph without one keeps its ids.
+    return [
+      repository,
+      os ?? null,
+      cpu ?? null,
+      bin ?? null,
+      ...(libc === undefined ? [] : [libc]),
+    ];
   };
   const sortedEdges = (id: string) =>
     Object.entries(packages[id].edges).sort(([a], [b]) => (a < b ? -1 : 1));
@@ -620,6 +655,19 @@ export function canonical(
     finalOf.set(cls, final);
   }
   return new Map(ids.map((id) => [id, finalOf.get(classOf.get(id)!)!]));
+}
+
+const LIBC_ON_OPTIONAL_EDGES =
+  "but Bun applies libc only through optional dependencies and installs it on every libc through any other edge, which a graph node's constraint cannot express";
+
+// Bun's filter, which a node's own constraint stands in for: libc excludes a
+// package only where an optional dependency, never a peer, reaches it.
+function requireOptional(from: string, name: string, target: LockMeta) {
+  if (target.libc !== undefined) {
+    throw new Error(
+      `${from}: required dependency ${name} has a libc constraint, ${LIBC_ON_OPTIONAL_EDGES}`,
+    );
+  }
 }
 
 // A package's dependencies and the resolvable optional ones, by Node's lookup

@@ -33,6 +33,10 @@ describe("bun.lock reading", () => {
         'packages["a"].os: expected a string or a list of strings',
       ],
       [
+        ["a@1.0.0", "", { libc: { musl: true } }, A],
+        'packages["a"].libc: expected a string or a list of strings',
+      ],
+      [
         ["a@1.0.0", "", { bin: ["cli.js"] }, A],
         'packages["a"].bin: expected an object',
       ],
@@ -61,15 +65,22 @@ describe("bun.lock reading", () => {
     ).toThrow('workspaces[""].devDependencies: expected an object');
   });
 
-  test("normalizes a string bin and a single os to their list forms", () => {
+  // Bun writes `libc` as a bare name, never a list.
+  test("normalizes a string bin, a single os and a libc to their list forms", () => {
     const entry = readLock(
       lockWith({
-        "@s/cli": ["@s/cli@1.0.0", "", { bin: "x.js", os: "linux" }, A],
+        "@s/cli": [
+          "@s/cli@1.0.0",
+          "",
+          { bin: "x.js", os: "linux", libc: "musl" },
+          A,
+        ],
       }),
     ).packages["@s/cli"];
     expect(entry.kind === "registry" && entry.meta.bin).toEqual({
       cli: "x.js",
     });
     expect(entry.kind === "registry" && entry.meta.os).toEqual(["linux"]);
+    expect(entry.kind === "registry" && entry.meta.libc).toEqual(["musl"]);
   });
 });
