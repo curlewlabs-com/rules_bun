@@ -23,8 +23,8 @@ npm_graph(
 )
 
 # Every node a fixture workspace reaches, whose units the test builds: the
-# cycle, the peer variants, the platform packages, the alias and the
-# workspace's own copy.
+# cycle, the peer variants, the platform packages (libc-constrained ones
+# among them), the alias and the workspace's own copy.
 npm_graph_test(
     name = "npm_graph_targets_test",
     size = "small",
@@ -37,6 +37,7 @@ npm_graph_test(
         "@npm//:node_modules/@eslint-community/eslint-utils",
         "@npm//:node_modules/esbuild",
         "@npm//:node_modules/eslint",
+        "@npm//:node_modules/oxc-parser",
         "@npm//:node_modules/semver",
         "@npm//:node_modules/semver-six",
         "@npm//:packages/tool/node_modules/semver",
@@ -75,6 +76,7 @@ npm_tree_test(
     links = [
         "@npm//:node_modules/esbuild",
         "@npm//:node_modules/eslint",
+        "@npm//:node_modules/oxc-parser",
         "@npm//:node_modules/semver",
         "@npm//:node_modules/semver-six",
         "@npm//:packages/tool/node_modules/semver",

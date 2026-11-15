@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import subprocess
 import sys
 import unittest
@@ -83,6 +84,44 @@ class TreeToolTest(unittest.TestCase):
         result = self.run_bun("node_modules/.bin/esbuild", "--version")
         self.assert_ran(result)
         self.assertRegex(result.stdout.strip(), r"^\d+\.\d+\.\d+$")
+
+    def test_oxc_parser_links_only_the_bindings_its_platform_admits(
+        self,
+    ) -> None:
+        # Bun installs one Linux binding per cpu, the glibc one, because its
+        # own build is glibc; a tree that linked the musl binding too, or a
+        # Linux binding on macOS, holds packages Bun's install leaves out.
+        cpu = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64"}[
+            platform.machine().lower()
+        ]
+        bindings = [
+            f"@oxc-parser/binding-{name}"
+            for name in (
+                f"darwin-{cpu}",
+                f"linux-{cpu}-gnu",
+                f"linux-{cpu}-musl",
+            )
+        ]
+        admitted = {bindings[0]} if sys.platform == "darwin" else {bindings[1]}
+        parser = (self.root / "node_modules/oxc-parser").resolve()
+        script = self.scratch / "oxc.mjs"
+        script.write_text(
+            "import { createRequire } from 'node:module';\n"
+            f"const fromRoot = createRequire({json.dumps(str(self.root / 'resolve.cjs'))});\n"
+            "const { parseSync } = await import(fromRoot.resolve('oxc-parser'));\n"
+            f"const fromParser = createRequire({json.dumps(str(parser / 'package.json'))});\n"
+            f"const found = {json.dumps(bindings)}.filter((name) => {{\n"
+            "  try { fromParser.resolve(name); return true; } catch { return false; }\n"
+            "});\n"
+            "const body = parseSync('x.js', 'let a = 1;').program.body.length;\n"
+            "console.log(JSON.stringify({ found, body }));\n"
+        )
+        result = self.run_bun(str(script))
+        self.assert_ran(result)
+        reported = json.loads(result.stdout)
+        self.assertEqual(set(reported["found"]), admitted)
+        # The admitted binding is the one the parser loads.
+        self.assertEqual(reported["body"], 1)
 
     def test_an_alias_links_its_own_release(self) -> None:
         manifest = self.root / "node_modules/semver-six/package.json"
