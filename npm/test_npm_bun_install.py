@@ -190,13 +190,56 @@ class CompareTest(unittest.TestCase):
         )
         self.assertEqual(compare(store, _graph(packages, roots), "darwin", "arm64"), [])
 
+    def test_glibc_linux_installs_only_the_glibc_binding(self) -> None:
+        # A glibc Bun skips a musl-only package, so the graph must too: a
+        # comparison that expected both bindings failed every Linux install
+        # of a lock recording libc.
+        packages: dict[str, dict[str, object]] = {
+            **_PACKAGES,
+            "native-gnu@1": {
+                "repository": "native-gnu@1",
+                "os": ["linux"],
+                "libc": ["glibc"],
+                "edges": {},
+            },
+            "native-musl@1": {
+                "repository": "native-musl@1",
+                "os": ["linux"],
+                "libc": ["musl"],
+                "edges": {},
+            },
+        }
+        roots = {**_ROOTS, "native-gnu": "native-gnu@1", "native-musl": "native-musl@1"}
+        graph = _graph(packages, roots)
+        glibc_store = Store(
+            directories={
+                **_STORE.directories,
+                "native-gnu@1": StoreDirectory("native-gnu@1", {}),
+            },
+            workspaces={".": {**_STORE.workspaces["."], "native-gnu": "native-gnu@1"}},
+        )
+        self.assertEqual(compare(glibc_store, graph, "linux", "x64"), [])
+
+        # A Bun that installed the musl binding too disagrees with the model.
+        both = Store(
+            directories={
+                **glibc_store.directories,
+                "native-musl@1": StoreDirectory("native-musl@1", {}),
+            },
+            workspaces={
+                ".": {**glibc_store.workspaces["."], "native-musl": "native-musl@1"}
+            },
+        )
+        self.assertNotEqual(compare(both, graph, "linux", "x64"), [])
+
     def test_nodes_the_translator_keeps_apart_by_metadata_pass(self) -> None:
-        # The translator merges on bin and on whether os or cpu is present at
-        # all, not only on edges, so nodes differing there alone are no
-        # missed merge even when they match one Bun directory.
+        # The translator merges on bin and on whether os, cpu or libc is
+        # present at all, not only on edges, so nodes differing there alone
+        # are no missed merge even when they match one Bun directory.
         for name, extra in (
             ("bin", {"bin": {"opt": "cli.js"}}),
             ("empty os", {"os": []}),
+            ("empty libc", {"libc": []}),
         ):
             with self.subTest(name):
                 packages = copy.deepcopy(_PACKAGES)

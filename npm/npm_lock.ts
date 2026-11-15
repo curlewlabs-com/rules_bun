@@ -10,6 +10,8 @@ export type LockMeta = {
   optionalPeers: string[];
   os?: string[];
   cpu?: string[];
+  // Bun records it only for a package restricted to one libc, by name.
+  libc?: string[];
   bin?: Record<string, string>;
 };
 
@@ -80,6 +82,7 @@ function meta(value: unknown, name: string, where: string): LockMeta {
       strings(fields.optionalPeers, `${where}.optionalPeers`) ?? [],
     os: strings(fields.os, `${where}.os`),
     cpu: strings(fields.cpu, `${where}.cpu`),
+    libc: strings(fields.libc, `${where}.libc`),
     // A string bin is npm's shorthand for one bin named after the package,
     // without its scope.
     bin:

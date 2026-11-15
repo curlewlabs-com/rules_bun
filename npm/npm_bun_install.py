@@ -58,9 +58,10 @@ class Node:
     repository: str
     os: tuple[str, ...]
     cpu: tuple[str, ...]
+    libc: tuple[str, ...]
     edges: Mapping[str, str]
-    # The translator's merge identity besides edges: its repository, os, cpu
-    # and bin, each as the graph holds it, an absent field apart from an
+    # The translator's merge identity besides edges: its repository, os, cpu,
+    # bin and libc, each as the graph holds it, an absent field apart from an
     # empty one (npm_graph.ts `canonical`).
     metadata: str
     # Bin name to its path inside the package.
@@ -154,6 +155,7 @@ def read_graph(value: object) -> Graph:
             repository=repository,
             os=_strings(fields.get("os"), f"{place}.os"),
             cpu=_strings(fields.get("cpu"), f"{place}.cpu"),
+            libc=_strings(fields.get("libc"), f"{place}.libc"),
             edges=_string_map(fields.get("edges"), f"{place}.edges"),
             metadata=json.dumps(
                 [
@@ -163,6 +165,7 @@ def read_graph(value: object) -> Graph:
                     _string_map(fields["bin"], f"{place}.bin")
                     if "bin" in fields
                     else None,
+                    *([fields["libc"]] if "libc" in fields else []),
                 ],
                 sort_keys=True,
             ),
@@ -200,7 +203,7 @@ def host_platform() -> tuple[str, str]:
 
 
 def admits(constraint: Iterable[str], value: str) -> bool:
-    """npm's os/cpu rule, as npm_package.bzl applies it.
+    """npm's os/cpu/libc rule, as npm_package.bzl applies it.
 
     A listed negation excludes, and any positive entry makes the list an
     allow-list.
@@ -210,6 +213,16 @@ def admits(constraint: Iterable[str], value: str) -> bool:
         return False
     allowed = [item for item in items if not item.startswith("!")]
     return not allowed or value in allowed
+
+
+def platform_admits(node: Node, os_name: str, cpu: str) -> bool:
+    """Whether Bun installs `node` on this os and cpu.
+
+    The libc is the one platforms.bzl gives the os: glibc on Linux, and none
+    on macOS, where Bun admits every libc.
+    """
+    libc_ok = os_name != "linux" or admits(node.libc, "glibc")
+    return admits(node.os, os_name) and admits(node.cpu, cpu) and libc_ok
 
 
 def identical_trees(graph: Graph) -> dict[str, int]:
@@ -258,8 +271,7 @@ def installed_nodes(graph: Graph, os_name: str, cpu: str) -> set[str]:
     """
 
     def admitted(node: str) -> bool:
-        record = graph.nodes[node]
-        return admits(record.os, os_name) and admits(record.cpu, cpu)
+        return platform_admits(graph.nodes[node], os_name, cpu)
 
     stack = [
         target
@@ -285,13 +297,13 @@ def host_tarballs(graph: Graph, os_name: str, cpu: str) -> set[str]:
     """The repositories whose tarballs Bun downloads on this host.
 
     Bun fetches every locked release the platform admits, reached or not, as
-    rules_bun's planner does; os and cpu are a release's, so any node of it
-    answers.
+    rules_bun's planner does; os, cpu and libc are a release's, so any node
+    of it answers.
     """
     excluded = {
         node.repository
         for node in graph.nodes.values()
-        if not (admits(node.os, os_name) and admits(node.cpu, cpu))
+        if not platform_admits(node, os_name, cpu)
     }
     return set(graph.tarballs) - excluded
 

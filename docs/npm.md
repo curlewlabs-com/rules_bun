@@ -88,6 +88,16 @@ the links are written concurrently, so an `npm:` alias of another release races
 the real name for one link. A literal list of names no alias shares has no such
 race. Translation fails on a name no workspace installs at the top level.
 
+A node keeps its release's `os`, `cpu` and `libc`, and a platform skips a node
+any of them excludes, as Bun does. Bun records `libc` in the lock from 1.4.4,
+which is also the first release to skip a package by it. Its libc is its own
+build's, so the graph's Linux platforms are glibc, the libc of every Linux Bun
+but the `-musl` builds, and macOS admits every libc. Bun applies `libc` only
+through an optional dependency, and installs the package on every libc through
+any other edge, a peer included, which a node's constraint cannot say;
+translation fails on a required dependency, or a peer of any kind, that links a
+package with a `libc`.
+
 The hub, `@npm` by default, declares one target per node, named by its id, and
 one per workspace dependency at the path Node would find it, such as
 `@npm//:node_modules/prettier` or `@npm//:packages/app/node_modules/eslint`. A
@@ -171,8 +181,8 @@ package resolves another by name from the tree's root.
 
 - **Edges** sit at `.store/<id>/node_modules/<dependency>` beside each unit,
   under the dependency's name, which an `npm:` alias makes differ from the
-  package's. An edge to a node whose `os` or `cpu` excludes the platform is left
-  out, as Bun skips that node.
+  package's. An edge to a node whose `os`, `cpu` or `libc` excludes the platform
+  is left out, as Bun skips that node.
 - **The fallback.** The hoisted node is linked at
   `.store/node_modules/<package>`, which a unit's own lookup reaches after its
   edges.

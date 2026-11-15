@@ -198,6 +198,64 @@ describe("npm lock translation", () => {
     ).toThrow("a: peer gone resolves to no locked package");
   });
 
+  // A glibc Bun skips a musl-only binding; a node without the libc it was
+  // locked with is one the graph installs and Bun does not (observed:
+  // oxc-parser's linux-x64 bindings).
+  test("carries a binding's libc onto its node, and no libc onto others", () => {
+    const graph = translate(
+      lock(only(["parser"]), {
+        parser: [
+          "parser@1.0.0",
+          "",
+          { optionalDependencies: only(["gnu", "musl"]) },
+          A,
+        ],
+        gnu: ["gnu@1.0.0", "", { os: "linux", libc: "glibc" }, B],
+        musl: ["musl@1.0.0", "", { os: "linux", libc: "musl" }, A],
+      }),
+    );
+    expect(graph.packages["gnu@1.0.0"].libc).toEqual(["glibc"]);
+    expect(graph.packages["musl@1.0.0"].libc).toEqual(["musl"]);
+    expect("libc" in graph.packages["parser@1.0.0"]).toBe(false);
+  });
+
+  // Bun filters libc only through an optional dependency, never a peer, so a
+  // node's constraint would drop a package that any other edge installs on
+  // every libc.
+  test("fails on a required dependency or any peer linking a libc package", () => {
+    const musl = ["musl@1.0.0", "", { libc: "musl" }, B];
+    expect(() =>
+      translate(
+        lock(only(["a"]), {
+          a: ["a@1.0.0", "", { dependencies: only(["musl"]) }, A],
+          musl,
+        }),
+      ),
+    ).toThrow("a: required dependency musl has a libc constraint");
+    expect(() => translate(lock(only(["musl"]), { musl }))).toThrow(
+      "workspace .: required dependency musl has a libc constraint",
+    );
+    // The peer's target, not its name, decides: an optional peer and a peer
+    // under an `npm:` alias each link the constrained release.
+    const host = (peer: string, peers: Record<string, unknown>) =>
+      translate(
+        lock(only(["a", "b"]), {
+          a: ["a@1.0.0", "", peers, A],
+          b: ["b@1.0.0", "", { optionalDependencies: only([peer]) }, A],
+          [peer]: musl,
+        }),
+      );
+    expect(() =>
+      host("musl", {
+        peerDependencies: only(["musl"]),
+        optionalPeers: ["musl"],
+      }),
+    ).toThrow("a: peer musl links musl@1.0.0, which has a libc constraint");
+    expect(() => host("alias", { peerDependencies: only(["alias"]) })).toThrow(
+      "a: peer alias links musl@1.0.0, which has a libc constraint",
+    );
+  });
+
   // Bun's store keeps one directory per release and peer set, wherever the
   // lock installs it.
   test("makes a release installed at several paths one node", () => {

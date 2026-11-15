@@ -6,7 +6,7 @@ function of checked-in files alone.
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
-load(":platforms.bzl", "NPM_PLATFORMS", "npm_allows")
+load(":platforms.bzl", "NPM_PLATFORMS", "npm_platform_allows")
 
 def _npm_hub_impl(rctx):
     graph = json.decode(rctx.read(rctx.attr.graph))
@@ -57,16 +57,16 @@ def _npm_hub_impl(rctx):
 
     # The tarballs Bun downloads on each platform, which npm_bun_install_test
     # serves it: every locked release the platform admits, reached or not, so
-    # a platform fetches no other platform's binaries. A release's os and cpu
-    # are its own, so any of its nodes answers.
+    # a platform fetches no other platform's binaries. A release's os, cpu
+    # and libc are its own, so any of its nodes answers.
     constraints = {}
     for package in packages.values():
-        constraints[package["repository"]] = (package.get("os", []), package.get("cpu", []))
+        constraints[package["repository"]] = (package.get("os", []), package.get("cpu", []), package.get("libc", []))
     for platform in NPM_PLATFORMS:
         admitted = [
             name
             for name in sorted(repositories)
-            if npm_allows(constraints.get(name, ([], []))[0], platform.os) and npm_allows(constraints.get(name, ([], []))[1], platform.cpu)
+            if npm_platform_allows(platform, *constraints.get(name, ([], [], [])))
         ]
         lines.append("")
         lines.append("npm_tarballs(")
@@ -117,14 +117,14 @@ def _npm_hub_impl(rctx):
         if hoisted.get(repositories[package["repository"]]["name"]) == node:
             lines.append("    hoisted = True,")
         lines.append("    declared = %r," % (":_unit/" + package["repository"]))
-        for attribute in ("os", "cpu", "bin", "edges"):
+        for attribute in ("os", "cpu", "libc", "bin", "edges"):
             if package.get(attribute):
                 lines.append("    %s = %s," % (attribute, json.encode(package[attribute])))
 
         # What an edge's link needs of the node it names, since a cycle's
         # members are not one another's deps.
         aliases = {}
-        edge_constraints = {"os": {}, "cpu": {}}
+        edge_constraints = {"os": {}, "cpu": {}, "libc": {}}
         for dependency, target in package["edges"].items():
             name = repositories[packages[target]["repository"]]["name"]
             if name != dependency:
@@ -183,7 +183,7 @@ def _npm_hub_impl(rctx):
             lines.append("    package = %r," % (":" + target))
             lines.append("    node = %r," % target)
             lines.append("    package_name = %r," % repositories[package["repository"]]["name"])
-            for attribute in ("os", "cpu"):
+            for attribute in ("os", "cpu", "libc"):
                 if package.get(attribute):
                     lines.append("    %s = %s," % (attribute, json.encode(package[attribute])))
             bins = {name: path for name, path in package.get("bin", {}).items() if owners[name] == dependency}

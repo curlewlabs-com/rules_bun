@@ -28,12 +28,12 @@ A node's unit is its release's tarball in one of two representations
   tree from the units and links npm_tree.bzl names, which needs an executor
   that provides the store.
 
-A node whose os or cpu excludes the platform has no unit.
+A node whose os, cpu or libc excludes the platform has no unit.
 """
 
 load("@curlewlabs_rules_archive_store//archive_store:archives.bzl", "ArchiveInfo")
 load(":flags.bzl", "NpmFlagInfo")
-load(":platforms.bzl", "NPM_PLATFORMS", "npm_allows")
+load(":platforms.bzl", "NPM_PLATFORMS", "npm_platform_allows")
 
 NpmPackageRecordInfo = provider(
     doc = "One graph node: a locked release, under the peers it links there.",
@@ -44,11 +44,12 @@ NpmPackageRecordInfo = provider(
         "archive": "Its registry tarball, verified against the locked integrity.",
         "os": "npm's os constraint, empty when unconstrained.",
         "cpu": "npm's cpu constraint, empty when unconstrained.",
+        "libc": "npm's libc constraint, empty when unconstrained.",
         "bin": "Bin name to its path inside the package.",
         "edges": "Dependency name, peers included, to the node it links.",
         "hoisted": "Whether it is the node Bun's store hoists under its name, which a linked tree then links at npm_hoisted_path: the fallback a package's own lookup reaches after its edges.",
         "store_path": "Where its unit sits in a linked tree: npm_store_path of its node and package.",
-        "unit": "Its unit: per-file, the directory output at store_path; archive, its release's declared_archive target, which npm_tree.bzl gives archive_tree as a unit of a consumer's linked tree; None when its os or cpu excludes the platform.",
+        "unit": "Its unit: per-file, the directory output at store_path; archive, its release's declared_archive target, which npm_tree.bzl gives archive_tree as a unit of a consumer's linked tree; None when its os, cpu or libc excludes the platform.",
         "checked": "File: its release's install-step check. The per-file unpack takes it as an input, and the archive unit is converted from the tarball the check passed, so reading a unit runs the check in every configuration.",
     },
 )
@@ -139,6 +140,7 @@ def _npm_platform(ctx):
             return struct(
                 os = platform.os,
                 cpu = platform.cpu,
+                libc = platform.libc,
                 archives = platform.os == "darwin" and ctx.attr._macos_archives[NpmFlagInfo].value,
             )
     fail("npm units are built for macOS and Linux, on aarch64 and x86_64.")
@@ -235,11 +237,8 @@ NpmPackagesInfo = provider(
     },
 )
 
-def _npm_platform_allows(platform, os, cpu):
-    return npm_allows(os, platform.os) and npm_allows(cpu, platform.cpu)
-
 def _unit(ctx, platform, release, store_path):
-    if not _npm_platform_allows(platform, ctx.attr.os, ctx.attr.cpu):
+    if not npm_platform_allows(platform, ctx.attr.os, ctx.attr.cpu, ctx.attr.libc):
         return None
     if platform.archives:
         return ctx.attr.declared
@@ -271,6 +270,7 @@ def _npm_package_impl(ctx):
         archive = release.archive,
         os = ctx.attr.os,
         cpu = ctx.attr.cpu,
+        libc = ctx.attr.libc,
         bin = ctx.attr.bin,
         edges = ctx.attr.edges,
         hoisted = ctx.attr.hoisted,
@@ -282,7 +282,8 @@ def _npm_package_impl(ctx):
     if type(unit) == "Target":
         own.append(unit[DefaultInfo].files)
     elif unit != None:
-        # Bun skips a package its os or cpu excludes, so no edge names one.
+        # Bun skips a package its os, cpu or libc excludes, so no edge names
+        # one.
         edges = [
             _link(
                 ctx,
@@ -290,7 +291,12 @@ def _npm_package_impl(ctx):
                 npm_store_path(node, ctx.attr.aliases.get(dependency, dependency)),
             )
             for dependency, node in sorted(ctx.attr.edges.items())
-            if _npm_platform_allows(platform, ctx.attr.edge_os.get(dependency, []), ctx.attr.edge_cpu.get(dependency, []))
+            if npm_platform_allows(
+                platform,
+                ctx.attr.edge_os.get(dependency, []),
+                ctx.attr.edge_cpu.get(dependency, []),
+                ctx.attr.edge_libc.get(dependency, []),
+            )
         ]
         if ctx.attr.hoisted:
             edges.append(_link(ctx, npm_hoisted_path(release.package), store_path))
@@ -315,12 +321,14 @@ npm_package = rule(
         "declared": attr.label(mandatory = True, providers = [ArchiveInfo], doc = "Its release's tarball as a declared_archive, converted from the copy the release's check passed: its unit where units are archives."),
         "os": attr.string_list(),
         "cpu": attr.string_list(),
+        "libc": attr.string_list(),
         "bin": attr.string_dict(),
         "edges": attr.string_dict(),
         "hoisted": attr.bool(doc = "Whether Bun's store hoists this node under its package's name."),
         "aliases": attr.string_dict(doc = "Dependency name to the package its edge links, for an edge whose name is not the package's own (an `npm:` alias)."),
         "edge_os": attr.string_list_dict(doc = "Dependency name to the os constraint of the node its edge links, for each constrained one."),
         "edge_cpu": attr.string_list_dict(doc = "Dependency name to the cpu constraint of the node its edge links, for each constrained one."),
+        "edge_libc": attr.string_list_dict(doc = "Dependency name to the libc constraint of the node its edge links, for each constrained one."),
         "deps": attr.label_list(providers = [NpmPackagesInfo]),
         "_npm_tarball": attr.label(
             default = Label("//npm:npm_tarball"),
@@ -334,7 +342,7 @@ npm_package = rule(
 NpmLinkInfo = provider(
     doc = "A workspace's links to one of its registry dependencies.",
     fields = {
-        "links": "Each link it adds to a linked tree, by its path from the tree's root to its relative target: `<workspace>/node_modules/<dependency>` and each `<workspace>/node_modules/.bin/<bin>`. Empty where the package's os or cpu excludes the platform.",
+        "links": "Each link it adds to a linked tree, by its path from the tree's root to its relative target: `<workspace>/node_modules/<dependency>` and each `<workspace>/node_modules/.bin/<bin>`. Empty where the package's os, cpu or libc excludes the platform.",
         "path": "`<workspace>/node_modules/<dependency>`: where link sits from the tree's root.",
         "platform": "npm's `<os>/<cpu>` for the platform it was configured for, such as `darwin/arm64`: one tree holds one platform's links, whether or not the package is linked there.",
         "archives": "Whether its tree is built from archive units by the archive store, rather than laid out from per-file units and links.",
@@ -351,7 +359,7 @@ def _npm_link_impl(ctx):
     path = modules + "/" + ctx.attr.dependency
     links = {}
     bin_paths = {}
-    if _npm_platform_allows(platform, ctx.attr.os, ctx.attr.cpu):
+    if npm_platform_allows(platform, ctx.attr.os, ctx.attr.cpu, ctx.attr.libc):
         links[path] = npm_relative(path, npm_store_path(ctx.attr.node, ctx.attr.package_name))
         for name, target in sorted(ctx.attr.bin.items()):
             bin_paths[name] = modules + "/.bin/" + name
@@ -387,6 +395,7 @@ npm_link = rule(
         "package_name": attr.string(mandatory = True, doc = "The node's npm name."),
         "os": attr.string_list(),
         "cpu": attr.string_list(),
+        "libc": attr.string_list(),
         "bin": attr.string_dict(doc = "The package's bins the workspace links under `.bin`: those no dependency whose name sorts first also names."),
     } | _PLATFORM_ATTRS,
     provides = [NpmPackagesInfo, NpmLinkInfo],
