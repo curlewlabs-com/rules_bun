@@ -5,7 +5,7 @@ module(name = "rules_bun_npm_consumer")
 # consumer of a published release declares one for each (docs/npm.md
 # sec."Setup").
 bazel_dep(name = "curlewlabs_rules_bun", version = "0.10.0")
-bazel_dep(name = "rules_python", version = "2.4.2")
+bazel_dep(name = "rules_python", version = "2.4.6")
 
 npm = use_extension("@curlewlabs_rules_bun//npm:extensions.bzl", "npm")
 npm.graph(graph = "//:npm_graph.json")
