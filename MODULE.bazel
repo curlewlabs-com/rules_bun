@@ -6,7 +6,7 @@ module(
 # The npm rules (//npm). Their units and tarball checks are Python, and their
 # macOS archive representation and tar member checks are rules_archive_store's.
 bazel_dep(name = "platforms", version = "1.1.0")
-bazel_dep(name = "rules_python", version = "2.4.2")
+bazel_dep(name = "rules_python", version = "2.4.6")
 bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.1.1")
 
 # rules_archive_store is not in the Bazel Central Registry, and an override
@@ -19,7 +19,7 @@ archive_override(
     urls = ["https://github.com/curlewlabs-com/rules_archive_store/releases/download/v0.1.1/rules_archive_store-0.1.1.tar.gz"],
 )
 
-bazel_dep(name = "rules_nodejs", version = "6.7.5", dev_dependency = True)
+bazel_dep(name = "rules_nodejs", version = "6.7.7", dev_dependency = True)
 
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)
 
