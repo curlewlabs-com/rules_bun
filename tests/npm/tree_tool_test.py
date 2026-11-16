@@ -79,6 +79,20 @@ class TreeToolTest(unittest.TestCase):
         self.assert_ran(result)
         self.assertRegex(result.stdout.strip(), r"^v\d+\.\d+\.\d+$")
 
+    def test_a_tarball_url_release_resolves_its_dependencies(self) -> None:
+        # A dependency named by its tarball's URL is a release like any other:
+        # a unit in the store, with edges to the registry releases it needs.
+        script = self.scratch / "visitor_keys.cjs"
+        script.write_text(
+            "const { createRequire } = require('node:module');\n"
+            f"const fromRoot = createRequire({json.dumps(str(self.root / 'resolve.cjs'))});\n"
+            "const { visitorKeys } = fromRoot('@typescript-eslint/visitor-keys');\n"
+            "console.log(Array.isArray(visitorKeys.Program));\n"
+        )
+        result = self.run_bun(str(script))
+        self.assert_ran(result)
+        self.assertEqual(result.stdout.strip(), "true")
+
     def test_esbuild_finds_its_platform_package(self) -> None:
         # The platform package is an edge only where its os and cpu allow.
         result = self.run_bun("node_modules/.bin/esbuild", "--version")

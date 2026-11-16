@@ -15,12 +15,17 @@ export type LockMeta = {
   bin?: Record<string, string>;
 };
 
+// A release is a default-registry package or one a dependency names by its
+// tarball's https URL. The lock records no version for the latter, so its
+// `version` is `urlVersion` of the URL: bounded and label-safe however long the
+// URL is, since it names a repository, a target and a store directory.
 export type LockPackage =
   | { kind: "workspace"; directory: string }
   | {
-      kind: "registry";
+      kind: "release";
       name: string;
       version: string;
+      url: string;
       integrity: string;
       meta: LockMeta;
     };
@@ -104,29 +109,86 @@ function lockPackage(value: unknown, where: string): LockPackage {
   // Workspace members are the consumer's own sources, not downloads.
   const member = /@workspace:(.*)$/.exec(spec);
   if (member) return { kind: "workspace", directory: member[1] };
+  // A tarball-URL entry is [spec, fields, integrity]; a registry entry has
+  // its registry source, empty for the default one, after the spec.
+  if (value.length === 3 && typeof value[1] === "object") {
+    return tarballPackage(spec, value[1], value[2], where);
+  }
   const [, source, fields, integrity] = value;
   if (source !== "" || value.length !== 4) {
     throw new Error(
-      `bun.lock ${where}: only default-registry packages are translated, found ${JSON.stringify(value.slice(0, 2))}`,
+      `bun.lock ${where}: only default-registry and https tarball-URL packages are translated, found ${JSON.stringify(value.slice(0, 2))}`,
     );
   }
   const at = spec.lastIndexOf("@");
   const name = spec.slice(0, at);
   const version = spec.slice(at + 1);
-  if (
-    at <= 0 ||
-    !version ||
-    typeof integrity !== "string" ||
-    !integrity.startsWith("sha512-")
-  ) {
+  if (at <= 0 || !version || !isIntegrity(integrity)) {
     throw new Error(
       `bun.lock ${where}: unreadable lock entry ${JSON.stringify(spec)}`,
     );
   }
   return {
-    kind: "registry",
+    kind: "release",
     name,
     version,
+    url: registryUrl(name, version),
+    integrity,
+    meta: meta(fields, name, where),
+  };
+}
+
+const REGISTRY = "https://registry.npmjs.org";
+
+export function registryUrl(name: string, version: string): string {
+  const base = name.includes("/") ? name.slice(name.indexOf("/") + 1) : name;
+  return `${REGISTRY}/${name}/-/${base}-${version}.tgz`;
+}
+
+function isIntegrity(value: unknown): value is string {
+  return typeof value === "string" && value.startsWith("sha512-");
+}
+
+const TARBALL_SPEC = /^((?:@[^/@]+\/)?[^/@]+)@(https:\/\/.+)$/;
+
+export function urlVersion(url: string): string {
+  const digest = new Bun.CryptoHasher("sha256").update(url).digest("hex");
+  return `url-${digest.slice(0, 16)}`;
+}
+
+// Credentials in a URL would be written into the graph and every log that
+// names the release.
+function tarballUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.username === "" &&
+      parsed.password === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function tarballPackage(
+  spec: string,
+  fields: unknown,
+  integrity: unknown,
+  where: string,
+): LockPackage {
+  const match = TARBALL_SPEC.exec(spec);
+  if (!match || !tarballUrl(match[2]) || !isIntegrity(integrity)) {
+    throw new Error(
+      `bun.lock ${where}: only default-registry and https tarball-URL packages are translated, found ${JSON.stringify(spec)}`,
+    );
+  }
+  const [, name, url] = match;
+  return {
+    kind: "release",
+    name,
+    version: urlVersion(url),
+    url,
     integrity,
     meta: meta(fields, name, where),
   };

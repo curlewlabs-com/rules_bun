@@ -123,6 +123,8 @@
     "npm__types__esrecurse__4.3.1": {"name":"@types/esrecurse","version":"4.3.1","url":"https://registry.npmjs.org/@types/esrecurse/-/esrecurse-4.3.1.tgz","integrity":"sha512-xJBAbDifo5hpffDBuHl0Y8ywswbiAp/Wi7Y/GtAgSlZyIABppyurxVueOPE8LUQOxdlgi6Zqce7uoEpqNTeiUw=="},
     "npm__types__estree__1.0.10": {"name":"@types/estree","version":"1.0.10","url":"https://registry.npmjs.org/@types/estree/-/estree-1.0.10.tgz","integrity":"sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g=="},
     "npm__types__json-schema__7.0.15": {"name":"@types/json-schema","version":"7.0.15","url":"https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.15.tgz","integrity":"sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="},
+    "npm__typescript-eslint__types__8.72.2": {"name":"@typescript-eslint/types","version":"8.72.2","url":"https://registry.npmjs.org/@typescript-eslint/types/-/types-8.72.2.tgz","integrity":"sha512-Xfn37OLZx03+PCU7qWx9DTv2FCRh1E6fk2+wONeNY15HXIwtcwuveaSwVpGAUptkNmPQegRxW5JyRel9T7wrog=="},
+    "npm__typescript-eslint__visitor-keys__url-c6db2e65e26774c4": {"name":"@typescript-eslint/visitor-keys","version":"url-c6db2e65e26774c4","url":"https://registry.npmjs.org/@typescript-eslint/visitor-keys/-/visitor-keys-8.72.2.tgz","integrity":"sha512-NAGrjn0Pitjqzq/GkgMC4kBYm233PQ8GffyQ9+kTA3AlNQYEzOf25EIM02BAHZv5FRJSpHpJk+OGUxVkOB93GQ=="},
     "npm__uri-js__4.4.1": {"name":"uri-js","version":"4.4.1","url":"https://registry.npmjs.org/uri-js/-/uri-js-4.4.1.tgz","integrity":"sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg=="},
     "npm__which__2.0.2": {"name":"which","version":"2.0.2","url":"https://registry.npmjs.org/which/-/which-2.0.2.tgz","integrity":"sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA=="},
     "npm__word-wrap__1.2.5": {"name":"word-wrap","version":"1.2.5","url":"https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz","integrity":"sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA=="},
@@ -194,6 +196,8 @@
     "@types/esrecurse@4.3.1": {"repository":"npm__types__esrecurse__4.3.1","edges":{}},
     "@types/estree@1.0.10": {"repository":"npm__types__estree__1.0.10","edges":{}},
     "@types/json-schema@7.0.15": {"repository":"npm__types__json-schema__7.0.15","edges":{}},
+    "@typescript-eslint/types@8.72.2": {"repository":"npm__typescript-eslint__types__8.72.2","edges":{}},
+    "@typescript-eslint/visitor-keys@url-c6db2e65e26774c4": {"repository":"npm__typescript-eslint__visitor-keys__url-c6db2e65e26774c4","edges":{"@typescript-eslint/types":"@typescript-eslint/types@8.72.2","eslint-visitor-keys":"eslint-visitor-keys@5.0.1"}},
     "acorn-jsx@5.3.2+cbf52f0eaf8eed70": {"repository":"npm__acorn-jsx__5.3.2","edges":{"acorn":"acorn@8.19.0"}},
     "acorn@8.19.0": {"repository":"npm__acorn__8.19.0","bin":{"acorn":"bin/acorn"},"edges":{}},
     "ajv@6.15.0": {"repository":"npm__ajv__6.15.0","edges":{"fast-deep-equal":"fast-deep-equal@3.1.3","fast-json-stable-stringify":"fast-json-stable-stringify@2.1.0","json-schema-traverse":"json-schema-traverse@0.4.1","uri-js":"uri-js@4.4.1"}},
@@ -258,7 +262,7 @@
     "yocto-queue@0.1.0": {"repository":"npm__yocto-queue__0.1.0","edges":{}}
   },
   "workspaces": {
-    ".": {"@eslint-community/eslint-utils":"@eslint-community/eslint-utils@4.9.1+5751e683160aa373","esbuild":"esbuild@0.28.2","eslint":"eslint@10.14.0+5a9a33e0b42853cc","oxc-parser":"oxc-parser@0.155.0","semver":"semver@7.8.5","semver-six":"semver@6.3.1"},
+    ".": {"@eslint-community/eslint-utils":"@eslint-community/eslint-utils@4.9.1+5751e683160aa373","@typescript-eslint/visitor-keys":"@typescript-eslint/visitor-keys@url-c6db2e65e26774c4","esbuild":"esbuild@0.28.2","eslint":"eslint@10.14.0+5a9a33e0b42853cc","oxc-parser":"oxc-parser@0.155.0","semver":"semver@7.8.5","semver-six":"semver@6.3.1"},
     "packages/tool": {"semver":"semver@6.3.1"}
   },
   "hoisted": {

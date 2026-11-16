@@ -26,11 +26,20 @@ directory matches a node when their releases agree, they link the same
 dependency names, and each dependency's store directory in turn matches the
 node the edge names. That is a greatest fixed point, so a dependency cycle
 matches when every member does.
+
+A release a dependency names by its tarball's URL is fetched from that URL, not
+from the registry, so the install's copies of the lock and manifests name a
+short loopback URL in its place, and a store directory named after that URL is
+read as the locked release. Short, because Bun cuts a store directory's name to
+a prefix and a hash past 80 bytes, which no locked version could be matched
+against; and every such tarball must then have been fetched from the loopback,
+or the install reached the network.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import http.server
 import json
 import os
@@ -47,6 +56,9 @@ from typing import override
 
 REGISTRY = "https://registry.npmjs.org/"
 WORKSPACE = "workspace:"
+# Where the loopback serves each URL release's tarball, by its index among
+# them.
+URL_TARBALLS = "t/"
 
 _NPM_OS = {"darwin": "darwin", "linux": "linux"}
 _NPM_CPU = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64", "amd64": "x64"}
@@ -71,7 +83,7 @@ class Node:
 @dataclass(frozen=True)
 class Graph:
     nodes: Mapping[str, Node]
-    # Repository name to the registry path Bun requests its tarball at.
+    # Repository name to the loopback path Bun requests its tarball at.
     tarballs: Mapping[str, str]
     # Release to the versions locked for its package name, for reading a store
     # directory's name.
@@ -79,6 +91,8 @@ class Graph:
     workspaces: Mapping[str, Mapping[str, str]]
     # Package name to the node Bun's store hoists into its fallback directory.
     hoisted: Mapping[str, str]
+    # Each URL release's locked URL to its loopback path.
+    locked_urls: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -131,17 +145,27 @@ def read_graph(value: object) -> Graph:
     root = _object(value, "graph")
     releases: dict[str, str] = {}
     tarballs: dict[str, str] = {}
+    locked_urls: dict[str, str] = {}
     versions: dict[str, set[str]] = {}
-    for name, entry in _object(root.get("repositories"), "repositories").items():
+    for name, entry in sorted(
+        _object(root.get("repositories"), "repositories").items()
+    ):
         place = f"repositories.{name}"
         record = _object(entry, place)
         package = _string(record.get("name"), f"{place}.name")
         version = _string(record.get("version"), f"{place}.version")
         url = _string(record.get("url"), f"{place}.url")
-        if not url.startswith(REGISTRY):
-            raise ValueError(f"{place}.url: not on {REGISTRY}: {url}")
+        if url == registry_url(package, version):
+            tarballs[name] = url.removeprefix(REGISTRY)
+        elif url.startswith("https://") and version == url_version(url):
+            tarballs[name] = f"{URL_TARBALLS}{len(locked_urls)}.tgz"
+            locked_urls[url] = tarballs[name]
+        else:
+            raise ValueError(
+                f"{place}.url: neither {package}@{version}'s registry tarball"
+                f" nor the https URL its version names: {url}"
+            )
         releases[name] = f"{package}@{version}"
-        tarballs[name] = url.removeprefix(REGISTRY)
         versions.setdefault(package, set()).add(version)
     nodes: dict[str, Node] = {}
     for node, entry in _object(root.get("packages"), "packages").items():
@@ -190,7 +214,27 @@ def read_graph(value: object) -> Graph:
         versions={name: frozenset(found) for name, found in versions.items()},
         workspaces=workspaces,
         hoisted=hoisted,
+        locked_urls=locked_urls,
     )
+
+
+def registry_url(package: str, version: str) -> str:
+    """The default registry's tarball URL for a release (npm_lock.ts
+    `registryUrl`)."""
+    base = package.rsplit("/", 1)[-1]
+    return f"{REGISTRY}{package}/-/{base}-{version}.tgz"
+
+
+def url_version(url: str) -> str:
+    """A URL release's version (npm_lock.ts `urlVersion`)."""
+    return "url-" + hashlib.sha256(url.encode()).hexdigest()[:16]
+
+
+def store_resolution(url: str) -> str:
+    """A tarball URL as Bun writes it in a store directory's name, each `:`
+    and `/` as `+`. Bun keeps it whole only up to 80 bytes, which the loopback
+    URLs stay under."""
+    return url.replace(":", "+").replace("/", "+")
 
 
 def host_platform() -> tuple[str, str]:
@@ -308,14 +352,22 @@ def host_tarballs(graph: Graph, os_name: str, cpu: str) -> set[str]:
     return set(graph.tarballs) - excluded
 
 
-def _release_of(directory: str, package: str, graph: Graph) -> str:
+def _release_of(
+    directory: str, package: str, graph: Graph, served: Mapping[str, str]
+) -> str:
     # Bun names a store directory `<name>@<version>`, with `/` in a scoped name
     # as `+`, and appends `+<hash>` to a peer variant's. A version can carry
-    # `+` build metadata of its own, so the locked versions decide.
+    # `+` build metadata of its own, so the locked versions decide. `served`
+    # maps what a URL release's store directory names it by, the loopback URL
+    # the install fetched it from, to its locked version.
     prefix = package.replace("/", "+") + "@"
     if not directory.startswith(prefix):
         raise ValueError(f"Store directory {directory} does not hold {package}")
     rest = directory.removeprefix(prefix)
+    for loopback, locked in served.items():
+        if rest == loopback or rest.startswith(loopback + "+"):
+            rest = locked + rest.removeprefix(loopback)
+            break
     found = [
         version
         for version in graph.versions.get(package, ())
@@ -346,9 +398,11 @@ def declared_workspaces(root: Path) -> list[str]:
     return [".", *_strings(manifest.get("workspaces"), "package.json workspaces")]
 
 
-def read_store(root: Path, graph: Graph) -> Store:
+def read_store(
+    root: Path, graph: Graph, served: Mapping[str, str] | None = None
+) -> Store:
     """Read Bun's isolated install under root: its store and the links of each
-    workspace its package.json declares.
+    workspace its package.json declares. `served` is what `install` returns.
     """
     root = root.resolve()
     store = root / "node_modules" / ".bun"
@@ -378,7 +432,8 @@ def read_store(root: Path, graph: Graph) -> Store:
         if len(own) != 1:
             raise ValueError(f"Store directory {entry.name} holds packages {own}")
         directories[entry.name] = StoreDirectory(
-            release=_release_of(entry.name, own[0], graph), links=links
+            release=_release_of(entry.name, own[0], graph, served or {}),
+            links=links,
         )
     for name, directory in directories.items():
         for dependency, linked in directory.links.items():
@@ -666,6 +721,7 @@ class _Registry(http.server.ThreadingHTTPServer):
     def __init__(self, tarballs: Mapping[str, Path]) -> None:
         super().__init__(("127.0.0.1", 0), _RegistryHandler)
         self.tarballs = tarballs
+        self.served: set[str] = set()
         self.unplanned: list[str] = []
 
 
@@ -680,6 +736,7 @@ class _RegistryHandler(http.server.BaseHTTPRequestHandler):
             registry.unplanned.append(f"GET {self.path}")
             self.send_error(404)
             return
+        registry.served.add(path)
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Length", str(tarball.stat().st_size))
@@ -694,26 +751,42 @@ class _RegistryHandler(http.server.BaseHTTPRequestHandler):
 
 
 def install(
-    bun: Path, root: Path, destination: Path, tarballs: Mapping[str, Path]
-) -> None:
+    bun: Path,
+    root: Path,
+    destination: Path,
+    tarballs: Mapping[str, Path],
+    locked_urls: Mapping[str, str],
+) -> dict[str, str]:
     """A frozen isolated install of root's lock and workspace manifests, under
     its bunfig.toml, whose hoistPattern decides what the fallback holds.
 
-    tarballs maps each registry path Bun may request to its file, which Bazel
+    tarballs maps each loopback path Bun may request to its file, which Bazel
     downloaded into the host's download store and verified against the locked
-    integrity, so the install adds no network fetch.
+    integrity, so the install adds no network fetch. locked_urls maps each URL
+    release's locked URL to its loopback path; the copies of the lock and
+    manifests name that path's loopback URL instead, the same in each, so the
+    frozen install still finds them agreeing.
+
+    Returns, for read_store, what each URL release's store directory is named
+    by, to its locked version.
     """
+    scratch = destination.parent / f"{destination.name}-scratch"
+    for name in ("home", "tmp", "cache"):
+        (scratch / name).mkdir(parents=True)
+    registry = _Registry(tarballs)
+    origin = f"http://127.0.0.1:{registry.server_address[1]}/"
+    rewrites = {url: origin + path for url, path in locked_urls.items()}
     for path in [
         "bun.lock",
         "bunfig.toml",
         *(f"{w}/package.json" for w in declared_workspaces(root)),
     ]:
         (destination / path).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(root / path, destination / path)
-    scratch = destination.parent / f"{destination.name}-scratch"
-    for name in ("home", "tmp", "cache"):
-        (scratch / name).mkdir(parents=True)
-    registry = _Registry(tarballs)
+        text = (root / path).read_text(encoding="utf-8")
+        # Longest first, so a URL that another extends is not cut out of it.
+        for url in sorted(rewrites, key=len, reverse=True):
+            text = text.replace(url, rewrites[url])
+        (destination / path).write_text(text, encoding="utf-8")
     server = threading.Thread(target=registry.serve_forever, daemon=True)
     server.start()
     try:
@@ -736,7 +809,7 @@ def install(
                 "HOME": str(scratch / "home"),
                 "TMPDIR": str(scratch / "tmp"),
                 "BUN_INSTALL_CACHE_DIR": str(scratch / "cache"),
-                "BUN_CONFIG_REGISTRY": f"http://127.0.0.1:{registry.server_address[1]}/",
+                "BUN_CONFIG_REGISTRY": origin,
                 "CI": "1",
                 "NO_COLOR": "1",
             },
@@ -752,6 +825,21 @@ def install(
         )
     if result.returncode != 0:
         raise RuntimeError(f"bun install failed with exit {result.returncode}")
+    # A URL the rewrite missed, spelled differently in a copy than in the
+    # graph, is one Bun fetched from its own host.
+    unserved = sorted(
+        url
+        for url, path in locked_urls.items()
+        if path in tarballs and path not in registry.served
+    )
+    if unserved:
+        raise RuntimeError(
+            f"bun install fetched tarball URLs from outside the loopback: {unserved}"
+        )
+    return {
+        store_resolution(loopback): url_version(url)
+        for url, loopback in rewrites.items()
+    }
 
 
 def print_comparison(store: Store, graph: Graph) -> bool:
@@ -808,7 +896,7 @@ def main() -> int:
     installed = scratch / "installed"
     stage(files, root)
     installed.mkdir()
-    install(
+    served = install(
         # Absolute, not resolved: //npm:bun may be a launcher that finds its
         # Bun from the runfiles path it was invoked by, and resolving the
         # symlink Bazel stages there moves it out of the tree.
@@ -816,8 +904,9 @@ def main() -> int:
         root,
         installed,
         {graph.tarballs[name]: Path(path).resolve() for name, path in tarballs.items()},
+        graph.locked_urls,
     )
-    return 1 if print_comparison(read_store(installed, graph), graph) else 0
+    return 1 if print_comparison(read_store(installed, graph, served), graph) else 0
 
 
 if __name__ == "__main__":

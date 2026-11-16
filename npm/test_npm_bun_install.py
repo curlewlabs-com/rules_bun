@@ -23,6 +23,9 @@ from npm_bun_install import (
     compare,
     read_graph,
     read_store,
+    registry_url,
+    store_resolution,
+    url_version,
 )
 
 
@@ -38,7 +41,7 @@ def _graph(
                 repository: {
                     "name": repository.rsplit("@", 1)[0],
                     "version": repository.rsplit("@", 1)[1],
-                    "url": f"https://registry.npmjs.org/{repository}.tgz",
+                    "url": registry_url(*repository.rsplit("@", 1)),
                 }
                 for repository in releases
             },
@@ -284,6 +287,61 @@ class CompareTest(unittest.TestCase):
             "Workspace extra is declared in package.json but missing from the graph",
             report,
         )
+
+    def test_a_url_release_is_read_back_from_its_loopback_store_name(self) -> None:
+        # The install fetches a URL release from the loopback, so Bun names its
+        # store directory after that URL; reading the name as is would match
+        # no locked release and fail every install that has one.
+        url = "https://example.com/o/t/releases/download/v1/t-1.tgz"
+        version = url_version(url)
+        graph = read_graph(
+            {
+                "repositories": {
+                    "t": {"name": "t", "version": version, "url": url},
+                },
+                "packages": {f"t@{version}": {"repository": "t", "edges": {}}},
+                "workspaces": {".": {"t": f"t@{version}"}},
+                "hoisted": {},
+            }
+        )
+        self.assertEqual(graph.tarballs, {"t": "t/0.tgz"})
+        self.assertEqual(graph.locked_urls, {url: "t/0.tgz"})
+        served = store_resolution("http://127.0.0.1:5000/t/0.tgz")
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            (root / "package.json").write_text("{}")
+            unit = root / "node_modules/.bun" / f"t@{served}+0123456789abcdef"
+            (unit / "node_modules/t").mkdir(parents=True)
+            (root / "node_modules/t").symlink_to(unit / "node_modules/t")
+            store = read_store(root, graph, {served: version})
+            self.assertEqual(compare(store, graph, "darwin", "arm64"), [])
+            with self.assertRaisesRegex(ValueError, "names no locked release"):
+                read_store(root, graph)
+
+    # Bun keeps a store directory's resolution whole only up to 80 bytes; past
+    # that the name is a prefix and a hash no locked version can be read from.
+    def test_loopback_urls_stay_within_buns_whole_name(self) -> None:
+        widest = store_resolution("http://127.0.0.1:65535/t/99999.tgz")
+        self.assertLessEqual(len(widest), 80)
+
+    def test_a_url_neither_the_registry_nor_its_version_names_fails(self) -> None:
+        # The url decides where the install serves a tarball from, so one
+        # that disagrees with the release it is recorded for is refused.
+        for version, url in [
+            ("1.0.0", "https://registry.npmjs.org/t/-/other-1.0.0.tgz"),
+            (url_version("https://example.com/t.tgz"), "https://example.com/u.tgz"),
+        ]:
+            with self.assertRaisesRegex(ValueError, "neither t@"):
+                read_graph(
+                    {
+                        "repositories": {
+                            "t": {"name": "t", "version": version, "url": url}
+                        },
+                        "packages": {},
+                        "workspaces": {},
+                        "hoisted": {},
+                    }
+                )
 
     def test_a_fallback_link_to_another_variant_or_release_fails(self) -> None:
         # The fallback is how a package finds what it requires without

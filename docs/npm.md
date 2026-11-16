@@ -1,11 +1,11 @@
 # Per-package npm rules
 
-The rules under [`//npm`](../npm) acquire a Bun workspace's registry packages
-one package at a time. `bun.lock` is translated into a checked-in graph; each
-locked release is fetched once, by its integrity, and becomes a unit of its own;
-and a consumer's `node_modules` is linked from the units it reaches. A bump to
-one package rebuilds that package's unit and the trees of the consumers that
-reach it, and nothing else.
+The rules under [`//npm`](../npm) acquire a Bun workspace's packages, from the
+default registry or a tarball URL, one package at a time. `bun.lock` is
+translated into a checked-in graph; each locked release is fetched once, by its
+integrity, and becomes a unit of its own; and a consumer's `node_modules` is
+linked from the units it reaches. A bump to one package rebuilds that package's
+unit and the trees of the consumers that reach it, and nothing else.
 
 `bun_install` ([README](../README.md)) installs a whole workspace in one
 repository rule instead. The two are independent; a module can use either.
@@ -66,9 +66,14 @@ Start with an empty graph, `{"repositories": {}, "packages": {}, "workspaces":
 ## Translation
 
 [`npm_graph.ts`](../npm/npm_graph.ts) reads `bun.lock` with Bun's own JSONC
-parser and writes the graph; its header owns the graph's fields. Only
-default-registry packages are translated, and a lock holding any other source
-fails translation.
+parser and writes the graph; its header owns the graph's fields.
+Default-registry packages are translated, and so is a dependency named by its
+tarball's https URL, such as a GitHub release asset: Bun records its integrity
+as for a registry release, and the hub downloads it from that URL. Its version
+in the graph is `url-` and the first 16 hex digits of the URL's SHA-256, which
+stays short and label-safe however long the URL is. A URL with credentials,
+plain http, and any other source, such as Git or another registry, fail
+translation.
 
 A graph node is a release under the peers it links. Bun resolves a peer from the
 packages that depend on it, not from where the lock installs it, so one release
@@ -251,12 +256,14 @@ npm_bun_install_test(
 
 It installs the lock frozen with Bun's isolated linker and `--ignore-scripts`,
 from a loopback registry serving only the hub's tarballs for the target
-platform, so it reaches no network. It then compares Bun's store with the graph
-from each side ([`npm_bun_install.py`](../npm/npm_bun_install.py)'s header owns
-how a store directory matches a node), the workspaces' links and the fallback,
-and each workspace's `.bin`. A failure names each unmatched store directory and
-node, with Bun's links beside the graph's edges. Run it on every platform you
-build for, and with each Bun you move to.
+platform, so it reaches no network. Its copies of the lock and manifests name a
+short loopback URL in place of each tarball URL, and the install fails if Bun
+fetched a tarball URL from anywhere else. It then compares Bun's store with the
+graph from each side ([`npm_bun_install.py`](../npm/npm_bun_install.py)'s header
+owns how a store directory matches a node), the workspaces' links and the
+fallback, and each workspace's `.bin`. A failure names each unmatched store
+directory and node, with Bun's links beside the graph's edges. Run it on every
+platform you build for, and with each Bun you move to.
 
 Two differences in `.bin` are expected and pass. Bun links some bins to a binary
 the package's optional dependency ships, as esbuild's own postinstall would,
