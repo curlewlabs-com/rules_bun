@@ -26,8 +26,6 @@
 
 import { type LockMeta, readLock } from "./npm_lock";
 
-const REGISTRY = "https://registry.npmjs.org";
-
 type Repository = {
   name: string;
   version: string;
@@ -82,11 +80,6 @@ function repositoryName(name: string, version: string): string {
     /[^A-Za-z0-9_.-]/g,
     "_",
   );
-}
-
-function tarballUrl(name: string, version: string): string {
-  const base = name.includes("/") ? name.slice(name.indexOf("/") + 1) : name;
-  return `${REGISTRY}/${name}/-/${base}-${version}.tgz`;
 }
 
 // Strongly connected components of size above one, each sorted, in the order
@@ -179,14 +172,15 @@ export function translate(
   }
   for (const path of Object.keys(registry).sort()) {
     const entry = lock.packages[path];
-    if (entry.kind !== "registry") continue;
-    const { name, version, integrity, meta } = entry;
+    if (entry.kind !== "release") continue;
+    const { name, version, url, integrity, meta } = entry;
     const repository = repositoryName(name, version);
     const existing = repositories[repository];
     if (
       existing &&
       (existing.name !== name ||
         existing.version !== version ||
+        existing.url !== url ||
         existing.integrity !== integrity)
     ) {
       throw new Error(
@@ -196,7 +190,7 @@ export function translate(
     repositories[repository] = {
       name,
       version,
-      url: tarballUrl(name, version),
+      url,
       integrity,
     };
     const deps = dependencies(registry, path, meta);

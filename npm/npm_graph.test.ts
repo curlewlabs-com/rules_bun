@@ -504,7 +504,88 @@ describe("npm lock translation", () => {
       translate(
         lock(only(["g"]), { g: ["g@github:o/g#abc", "o-g-abc", {}, A] }),
       ),
-    ).toThrow("only default-registry packages are translated");
+    ).toThrow("only default-registry and https tarball-URL packages");
+    // Bun's own shape for a GitHub dependency: no source string, an id, then
+    // the integrity.
+    expect(() =>
+      translate(
+        lock(only(["g"]), { g: ["g@github:o/g#abc", {}, "o-g-abc", A] }),
+      ),
+    ).toThrow("only default-registry and https tarball-URL packages");
+  });
+
+  // A release tarball's URL is the one non-registry source a consumer can
+  // pin by integrity alone; it is downloaded from there.
+  test("translates a tarball-URL dependency and downloads it from its URL", () => {
+    const url = "https://example.com/o/t/releases/download/v1.0.0/t-1.0.0.tgz";
+    const graph = translate(
+      lock(
+        { "@o/t": url },
+        {
+          "@o/t": [`@o/t@${url}`, { dependencies: only(["a"]) }, A],
+          a: ["a@1.0.0", "", {}, B],
+        },
+      ),
+    );
+    const [repository] = Object.values(graph.repositories).filter(
+      (entry) => entry.name === "@o/t",
+    );
+    expect(repository).toEqual({
+      name: "@o/t",
+      version: expect.stringMatching(/^url-[0-9a-f]{16}$/),
+      url,
+      integrity: A,
+    });
+    const node = `@o/t@${repository.version}`;
+    expect(graph.workspaces["."]).toEqual({ "@o/t": node });
+    expect(graph.packages[node].edges).toEqual({ a: "a@1.0.0" });
+  });
+
+  // The version names a repository, a hub target and a store directory, so a
+  // URL past a filesystem name's length must not carry into it, and a release
+  // asset's URL is already near Bun's own 80-byte cut.
+  test("gives a tarball-URL release a bounded version however long its URL", () => {
+    const url = `https://example.com/${"d/".repeat(200)}t.tgz`;
+    const graph = translate(lock({ t: url }, { t: [`t@${url}`, {}, A] }));
+    const ids = Object.keys(graph.packages);
+    expect(ids).toEqual([expect.stringMatching(/^t@url-[0-9a-f]{16}$/)]);
+    expect(Object.keys(graph.repositories)[0].length).toBeLessThan(40);
+  });
+
+  // Two URLs are two releases, even of one package name.
+  test("keeps tarball-URL releases of one package apart by URL", () => {
+    const one = "https://example.com/t-1.tgz";
+    const two = "https://example.com/t-2.tgz";
+    const graph = translate(
+      lock(
+        { t: one },
+        {
+          t: [`t@${one}`, { dependencies: only(["u"]) }, A],
+          u: ["u@1.0.0", "", { dependencies: { t: two } }, B],
+          "u/t": [`t@${two}`, {}, B],
+        },
+      ),
+    );
+    expect(
+      Object.values(graph.repositories)
+        .filter((entry) => entry.name === "t")
+        .map((entry) => entry.url)
+        .sort(),
+    ).toEqual([one, two]);
+  });
+
+  // Plain http has no integrity in transit for a reviewer bumping the pin to
+  // rely on, and credentials would be written into the graph and its logs.
+  test("refuses a tarball URL that is not https or carries credentials", () => {
+    for (const url of [
+      "http://example.com/t.tgz",
+      "https://user@example.com/t.tgz",
+      "https://user:secret@example.com/t.tgz",
+    ]) {
+      expect(() =>
+        translate(lock({ t: url }, { t: [`t@${url}`, {}, A] })),
+      ).toThrow("only default-registry and https tarball-URL packages");
+    }
   });
 
   // Bun keys a workspace's own copy of a dependency by the workspace's

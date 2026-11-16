@@ -41,6 +41,14 @@ describe("bun.lock reading", () => {
         'packages["a"].bin: expected an object',
       ],
       [["a@1.0.0", "", {}, 7], 'packages["a"]: unreadable lock entry'],
+      [
+        ["a@https://example.com/a.tgz", [], A],
+        'packages["a"]: expected an object',
+      ],
+      [
+        ["a@https://example.com/a.tgz", {}, 7],
+        'packages["a"]: only default-registry and https tarball-URL packages',
+      ],
     ];
     for (const [entry, message] of cases) {
       const read = () => readLock(lockWith({ a: entry }));
@@ -77,10 +85,10 @@ describe("bun.lock reading", () => {
         ],
       }),
     ).packages["@s/cli"];
-    expect(entry.kind === "registry" && entry.meta.bin).toEqual({
+    expect(entry.kind === "release" && entry.meta.bin).toEqual({
       cli: "x.js",
     });
-    expect(entry.kind === "registry" && entry.meta.os).toEqual(["linux"]);
-    expect(entry.kind === "registry" && entry.meta.libc).toEqual(["musl"]);
+    expect(entry.kind === "release" && entry.meta.os).toEqual(["linux"]);
+    expect(entry.kind === "release" && entry.meta.libc).toEqual(["musl"]);
   });
 });
