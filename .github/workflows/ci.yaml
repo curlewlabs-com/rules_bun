@@ -29,7 +29,7 @@ jobs:
     # checks and the release archive's.
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: bazel-contrib/setup-bazel@0.19.1
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - run: python3 -m pip install pre-commit==4.3.0
