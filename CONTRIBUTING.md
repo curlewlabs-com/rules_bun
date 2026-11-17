@@ -8,8 +8,10 @@ open a pull request with the behavior change and verification evidence.
 
 Curlew Labs maintains this project. Jeffrey Wall
 ([jeffwall-curlewlabs](https://github.com/jeffwall-curlewlabs)) reviews changes
-and approves releases. Use issues for reproducible defects and proposals;
-use [private vulnerability reporting](SECURITY.md) for security concerns.
+and approves the releases that
+[need approval](docs/releases.md#which-releases-need-approval). Use issues for
+reproducible defects and proposals; use
+[private vulnerability reporting](SECURITY.md) for security concerns.
 
 Changes land through pull requests with passing CI and maintainer review;
 [toolchain updates](#toolchain-updates) merge on passing CI alone.
@@ -88,11 +90,11 @@ The adaptations reflect this ruleset's scope:
 
 ## Releases
 
-Follow [release preparation and approval](docs/releases.md) to produce a
+Follow [release preparation and publication](docs/releases.md) to produce a
 source-only archive, verify it with the independent consumer, and review the
-platform evidence. Approved fixed version tags trigger the rules-template
-reusable workflow's draft-release stage. Publishing the draft remains a
-separate explicit maintainer decision.
+platform evidence. A fixed version tag triggers the rules-template reusable
+workflow's draft-release stage. Publishing the draft is a separate step, taken
+after the draft's own checks.
 
 BCR metadata, presubmit configuration, and publishing automation belong to the
 separate future [issue #4](https://github.com/curlewlabs-com/rules_bun/issues/4).
