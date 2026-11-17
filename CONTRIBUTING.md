@@ -1,8 +1,27 @@
 # Contributing
 
+Thanks for your interest in improving `rules_bun`. The bar for a change is
+whether the same declared inputs still produce the same packages, each checked
+against its locked integrity, with anything the rules cannot acquire exactly
+failing instead of producing a partial result. Bug fixes, sharper refusals of
+locks and inputs outside what the rules support, coverage of another platform
+with the evidence the compatibility policy asks for, and clearer docs are all
+welcome.
+
 Use the Bazel release in `.bazelversion`, Python, and Git. The integration
 checks download their own Bun and Node runtimes. Keep changes on a branch and
 open a pull request with the behavior change and verification evidence.
+
+## Before a large change
+
+Propose it in an issue before writing it. The guarantees rest on rules that are
+easy to weaken by accident: the
+[failure contract](docs/compatibility.md#failure-contract) and
+[versioning rules](docs/compatibility.md#versioning), the
+[closure format](docs/closure-format.md) consumers restore from, and, for the
+npm rules, the translation's model of how Bun links packages and
+[what a layout must keep](docs/npm.md#what-a-layout-must-keep). A short
+discussion up front saves rework.
 
 ## Maintainership and review
 
