@@ -1,9 +1,16 @@
-# Release preparation and approval
+# Release preparation and publication
 
 A release is a source-only archive produced from a reviewed commit, with
 rendered API documentation added. The archive includes the committed module
 metadata and licenses; it does not include Git metadata, untracked files,
 downloaded runtimes, installed packages, or local build caches.
+
+## Which releases need approval
+
+A patch or minor release needs no approval beyond the checks in the steps below:
+whoever cuts it follows them in order, and each step's check is the gate. A
+major version, a 1.0, or a minor before 1.0 that changes an interface consumers
+use needs the maintainer's explicit approval before its tag is pushed.
 
 ## Prepare a candidate
 
@@ -33,14 +40,15 @@ archive bytes do not depend on the preparing host or commit timestamp.
 
 Normal CI verifies the prepared archive on its native platform matrix. Review
 the candidate contents, integrity, license notices, generated API reference,
-release notes, and platform logs before approving a version tag. Security and
+release notes, and platform logs before pushing a version tag. Security and
 repository settings must still match the documented release policy. A green
 candidate is evidence for review, not permission to publish.
 
-## Create the approved draft
+## Create the draft
 
-After maintainer approval, create a fixed `vMAJOR.MINOR.PATCH` tag at the
-reviewed commit on `main` and push that tag. Never move or replace a fixed tag.
+Create a fixed `vMAJOR.MINOR.PATCH` tag at the reviewed commit on `main` and
+push that tag, with approval first where the release needs it. Never move or
+replace a fixed tag.
 The [release workflow](../.github/workflows/release.yaml) checks main-branch
 ancestry, runs the normal CI workflow, and invokes the pinned
 [rules-template reusable release workflow](https://github.com/bazel-contrib/.github/blob/v7.7.0/.github/workflows/release_ruleset.yaml).
@@ -68,10 +76,9 @@ gh attestation verify rules_bun-X.Y.Z.tar.gz -R curlewlabs-com/rules_bun \
 ```
 
 The reusable workflow signs the attestation, so verifying with only `-R` fails
-even for a genuine archive. Obtain the
-maintainer's explicit publication approval, then publish the draft. Immutable
-releases and fixed-tag protection prevent rewriting published bytes. Fix a
-published defect with a new version.
+even for a genuine archive. Then publish the draft. Immutable releases and
+fixed-tag protection prevent rewriting published bytes. Fix a published defect
+with a new version.
 
 Verify the published asset through the independent consumer and update its
 example pin to the release URL/integrity in a follow-up reviewed change. Link
