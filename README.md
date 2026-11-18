@@ -227,9 +227,8 @@ license alone may also be used under either license. No runtime or npm package
 binaries are vendored. Downloaded artifacts retain their own licenses; the
 ruleset's license does not relicense them.
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this project by you, as defined in the Apache-2.0 license,
-shall be dual licensed as above, without any additional terms or conditions.
+By submitting a contribution for inclusion in this project, you agree that it
+is dual licensed as above, without any additional terms or conditions.
 
 The integration example uses Apache-2.0 licensed
 [rules_nodejs](https://github.com/bazel-contrib/rules_nodejs/blob/v6.7.5/LICENSE),

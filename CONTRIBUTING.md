@@ -120,7 +120,6 @@ separate future [issue #4](https://github.com/curlewlabs-com/rules_bun/issues/4)
 
 ## License
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this project by you, as defined in the Apache-2.0 license,
-shall be dual licensed under the MIT and Apache-2.0 licenses, as the README's
-License section describes, without any additional terms or conditions.
+By submitting a contribution for inclusion in this project, you agree that it
+is licensed under the MIT and Apache-2.0 licenses, as the README's License
+section describes, without any additional terms or conditions.
