@@ -1,0 +1,137 @@
+{
+  "repositories": {
+    "npm__acorn-jsx__5.3.2": {
+      "name": "acorn-jsx",
+      "version": "5.3.2",
+      "url": "https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz",
+      "integrity": "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="
+    },
+    "npm__acorn__8.19.0": {
+      "name": "acorn",
+      "version": "8.19.0",
+      "url": "https://registry.npmjs.org/acorn/-/acorn-8.19.0.tgz",
+      "integrity": "sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw=="
+    },
+    "npm__balanced-match__4.0.4": {
+      "name": "balanced-match",
+      "version": "4.0.4",
+      "url": "https://registry.npmjs.org/balanced-match/-/balanced-match-4.0.4.tgz",
+      "integrity": "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="
+    },
+    "npm__brace-expansion__5.0.12": {
+      "name": "brace-expansion",
+      "version": "5.0.12",
+      "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ=="
+    },
+    "npm__deep-is__0.1.4": {
+      "name": "deep-is",
+      "version": "0.1.4",
+      "url": "https://registry.npmjs.org/deep-is/-/deep-is-0.1.4.tgz",
+      "integrity": "sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ=="
+    },
+    "npm__escape-string-regexp__4.0.0": {
+      "name": "escape-string-regexp",
+      "version": "4.0.0",
+      "url": "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz",
+      "integrity": "sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA=="
+    },
+    "npm__keyv__serialize__1.1.1": {
+      "name": "@keyv/serialize",
+      "version": "1.1.1",
+      "url": "https://registry.npmjs.org/@keyv/serialize/-/serialize-1.1.1.tgz",
+      "integrity": "sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA=="
+    },
+    "npm__semver__6.3.1": {
+      "name": "semver",
+      "version": "6.3.1",
+      "url": "https://registry.npmjs.org/semver/-/semver-6.3.1.tgz",
+      "integrity": "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="
+    },
+    "npm__semver__7.8.5": {
+      "name": "semver",
+      "version": "7.8.5",
+      "url": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
+      "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA=="
+    }
+  },
+  "packages": {
+    "@keyv/serialize@1.1.1": {
+      "repository": "npm__keyv__serialize__1.1.1",
+      "edges": {
+        "deep-is": "deep-is@0.1.4"
+      },
+      "cycle": "deep-is@0.1.4"
+    },
+    "acorn-jsx@5.3.2": {
+      "repository": "npm__acorn-jsx__5.3.2",
+      "edges": {}
+    },
+    "acorn@8.19.0": {
+      "repository": "npm__acorn__8.19.0",
+      "bin": {
+        "tool": "bin/acorn"
+      },
+      "edges": {
+        "acorn-jsx": "acorn-jsx@5.3.2"
+      }
+    },
+    "balanced-match@4.0.4": {
+      "repository": "npm__balanced-match__4.0.4",
+      "edges": {}
+    },
+    "brace-expansion@5.0.12": {
+      "repository": "npm__brace-expansion__5.0.12",
+      "edges": {}
+    },
+    "deep-is@0.1.4": {
+      "repository": "npm__deep-is__0.1.4",
+      "edges": {
+        "escape-string-regexp": "escape-string-regexp@4.0.0"
+      },
+      "cycle": "deep-is@0.1.4"
+    },
+    "escape-string-regexp@4.0.0": {
+      "repository": "npm__escape-string-regexp__4.0.0",
+      "os": ["linux"],
+      "edges": {
+        "@keyv/serialize": "@keyv/serialize@1.1.1"
+      },
+      "cycle": "deep-is@0.1.4"
+    },
+    "semver@6.3.1": {
+      "repository": "npm__semver__6.3.1",
+      "os": ["darwin"],
+      "bin": {
+        "tool": "bin/semver.js"
+      },
+      "edges": {
+        "brace-expansion": "brace-expansion@5.0.12"
+      }
+    },
+    "semver@7.8.5": {
+      "repository": "npm__semver__7.8.5",
+      "os": ["linux"],
+      "cpu": ["x64"],
+      "bin": {
+        "tool": "bin/semver.js"
+      },
+      "edges": {
+        "acorn-jsx": "acorn-jsx@5.3.2",
+        "balanced-match": "balanced-match@4.0.4"
+      }
+    }
+  },
+  "workspaces": {
+    ".": {
+      "a-tool": "semver@7.8.5",
+      "b-tool": "semver@6.3.1",
+      "c-tool": "acorn@8.19.0",
+      "d-cycle": "deep-is@0.1.4",
+      "e-cycle-linux": "escape-string-regexp@4.0.0"
+    }
+  },
+  "hoisted": {
+    "balanced-match": "balanced-match@4.0.4"
+  }
+}

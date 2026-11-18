@@ -11,6 +11,7 @@ exports_files([
     "defs.bzl",
     "extensions.bzl",
     "flags.bzl",
+    "hub.bzl",
     "npm_graph.bzl",
     "npm_graph.ts",
     "npm_lock.ts",

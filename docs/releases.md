@@ -48,7 +48,14 @@ candidate is evidence for review, not permission to publish.
 
 Create a fixed `vMAJOR.MINOR.PATCH` tag at the reviewed commit on `main` and
 push that tag, with approval first where the release needs it. Never move or
-replace a fixed tag.
+replace a fixed tag. The tag is annotated, with the version as its message, so
+it records who cut the release and when:
+
+```sh
+git tag -a vX.Y.Z -m vX.Y.Z <commit>
+git push origin vX.Y.Z
+```
+
 The [release workflow](../.github/workflows/release.yaml) checks main-branch
 ancestry, runs the normal CI workflow, and invokes the pinned
 [rules-template reusable release workflow](https://github.com/bazel-contrib/.github/blob/v7.7.0/.github/workflows/release_ruleset.yaml).

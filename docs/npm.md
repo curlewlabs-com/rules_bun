@@ -111,7 +111,8 @@ dependency on another workspace gets none; the graph records it as
 `workspace:<directory>`, and `@npm//:workspaces.bzl` lists each workspace's
 links and workspace dependencies. A dependency cycle cannot be a Bazel
 dependency, so each member of one is an alias of a group target that reaches
-every member. `npm_graph_test` checks, for the targets it names, that everything
+the members Bun's walk from it reaches on the platform: every member, unless a
+member the platform excludes ends the walk short of some. `npm_graph_test` checks, for the targets it names, that everything
 a target reaches has its edges reached too. A target is analyzed only when
 something depends on it, and analyzing one downloads its closure, so nothing
 downloads a package no consumer reaches.
@@ -187,7 +188,8 @@ package resolves another by name from the tree's root.
 - **Edges** sit at `.store/<id>/node_modules/<dependency>` beside each unit,
   under the dependency's name, which an `npm:` alias makes differ from the
   package's. An edge to a node whose `os`, `cpu` or `libc` excludes the platform
-  is left out, as Bun skips that node.
+  is left out, as Bun skips that node, and so is everything only that node
+  reaches.
 - **The fallback.** The hoisted node is linked at
   `.store/node_modules/<package>`, which a unit's own lookup reaches after its
   edges.
@@ -195,7 +197,8 @@ package resolves another by name from the tree's root.
   `<workspace>/node_modules/<dependency>` and each of the package's bins at
   `<workspace>/node_modules/.bin/<bin>`. When two of a workspace's dependencies
   name one bin, as an `npm:` alias of a package the workspace also depends on
-  does, the bin is the dependency's whose name sorts first, as Bun links it.
+  does, the bin is the dependency's whose name sorts first among those the
+  platform installs, as Bun links it.
 - **One repository.** Every per-file link is relative and stays inside the hub,
   so it resolves in an action's input root and in a test's runfiles alike.
 

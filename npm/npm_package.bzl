@@ -28,7 +28,8 @@ A node's unit is its release's tarball in one of two representations
   tree from the units and links npm_tree.bzl names, which needs an executor
   that provides the store.
 
-A node whose os, cpu or libc excludes the platform has no unit.
+A node whose os, cpu or libc excludes the platform has no unit, and reaches
+nothing past itself there, as Bun's walk stops at it.
 """
 
 load("@curlewlabs_rules_archive_store//archive_store:archives.bzl", "ArchiveInfo")
@@ -231,9 +232,9 @@ npm_install_exemption = rule(
 )
 
 NpmPackagesInfo = provider(
-    doc = "The packages a graph target reaches.",
+    doc = "The packages a graph target reaches on its platform, through the nodes the platform admits.",
     fields = {
-        "packages": "depset of NpmPackageRecordInfo, this target's own first.",
+        "packages": "depset of NpmPackageRecordInfo, this target's own first. A node the platform excludes contributes its own record, with no unit, and none of its edges' records.",
     },
 )
 
@@ -301,15 +302,20 @@ def _npm_package_impl(ctx):
         if ctx.attr.hoisted:
             edges.append(_link(ctx, npm_hoisted_path(release.package), store_path))
         own.append(depset([unit] + edges))
+
+    # Bun's walk stops at a node the platform excludes, so what it alone
+    # reaches is not installed; its own record stays, for the edges that name
+    # it.
+    deps = ctx.attr.deps if unit != None else []
     return [
         NpmPackagesInfo(packages = depset(
             [record],
-            transitive = [dep[NpmPackagesInfo].packages for dep in ctx.attr.deps],
+            transitive = [dep[NpmPackagesInfo].packages for dep in deps],
             order = "preorder",
         )),
         # Every unit and check the target reaches, so building it in any
         # configuration builds them.
-        DefaultInfo(files = depset(transitive = own + [dep[DefaultInfo].files for dep in ctx.attr.deps])),
+        DefaultInfo(files = depset(transitive = own + [dep[DefaultInfo].files for dep in deps])),
     ]
 
 npm_package = rule(
@@ -396,7 +402,7 @@ npm_link = rule(
         "os": attr.string_list(),
         "cpu": attr.string_list(),
         "libc": attr.string_list(),
-        "bin": attr.string_dict(doc = "The package's bins the workspace links under `.bin`: those no dependency whose name sorts first also names."),
+        "bin": attr.string_dict(doc = "The package's bins the workspace links under `.bin`: those no dependency the platform admits whose name sorts first also names. The hub selects them by platform where that differs."),
     } | _PLATFORM_ATTRS,
     provides = [NpmPackagesInfo, NpmLinkInfo],
 )
@@ -451,6 +457,9 @@ def _npm_graph_test_impl(ctx):
         records = target[NpmPackagesInfo].packages.to_list()
         reached = {record.node: True for record in records}
         for record in records:
+            # An excluded node's edges are Bun's to skip, as its walk does.
+            if record.unit == None:
+                continue
             for dependency, node in record.edges.items():
                 if node not in reached:
                     unresolved.append("%s: %s -> %s (%s)" % (target.label, record.node, dependency, node))
@@ -471,7 +480,7 @@ def _npm_graph_test_impl(ctx):
 
 npm_graph_test = rule(
     implementation = _npm_graph_test_impl,
-    doc = """Fails analysis when a target reaches a node whose edges name a node it does not reach.
+    doc = """Fails analysis when a target reaches a node the platform admits whose edges name a node it does not reach.
 
     A target's deps are its edges with cycle edges removed, so this is what
     proves the cycle grouping still delivers every edge a consumer resolves.
