@@ -62,10 +62,17 @@ function paxRecord(key, value) {
 // The ustar name/prefix split, or null when the path needs a PAX record.
 function ustarName(path) {
   if (Buffer.byteLength(path, "utf8") <= 100) return { name: path, prefix: "" };
-  for (let cut = path.indexOf("/"); cut !== -1; cut = path.indexOf("/", cut + 1)) {
+  for (
+    let cut = path.indexOf("/");
+    cut !== -1;
+    cut = path.indexOf("/", cut + 1)
+  ) {
     const prefix = path.slice(0, cut);
     const name = path.slice(cut + 1);
-    if (Buffer.byteLength(prefix, "utf8") <= 155 && Buffer.byteLength(name, "utf8") <= 100)
+    if (
+      Buffer.byteLength(prefix, "utf8") <= 155 &&
+      Buffer.byteLength(name, "utf8") <= 100
+    )
       return { name, prefix };
   }
   return null;
@@ -83,11 +90,25 @@ export function writeArchive(root, entries, output) {
   const fd = openSync(output, "w");
   try {
     for (const entry of entries) {
-      const kind = entry.directory ? "directory" : entry.symlink !== undefined ? "symlink" : "file";
+      const kind = entry.directory
+        ? "directory"
+        : entry.symlink !== undefined
+          ? "symlink"
+          : "file";
       const path = kind === "directory" ? `${entry.path}/` : entry.path;
       const linkname = kind === "symlink" ? entry.symlink : "";
-      const content = kind === "file" ? readFileSync(`${root}/${entry.path}`) : Buffer.alloc(0);
-      const mode = kind === "directory" ? 0o755 : kind === "symlink" ? 0o777 : entry.executable ? 0o555 : 0o444;
+      const content =
+        kind === "file"
+          ? readFileSync(`${root}/${entry.path}`)
+          : Buffer.alloc(0);
+      const mode =
+        kind === "directory"
+          ? 0o755
+          : kind === "symlink"
+            ? 0o777
+            : entry.executable
+              ? 0o555
+              : 0o444;
       let split = ustarName(path);
       const records = [];
       if (!split) {
@@ -95,10 +116,19 @@ export function writeArchive(root, entries, output) {
         // Readers take the PAX path; the ustar field only has to be valid.
         split = { name: "pax-path", prefix: "" };
       }
-      if (Buffer.byteLength(linkname, "utf8") > 100) records.push(paxRecord("linkpath", linkname));
+      if (Buffer.byteLength(linkname, "utf8") > 100)
+        records.push(paxRecord("linkpath", linkname));
       if (records.length) {
         const pax = Buffer.from(records.join(""), "utf8");
-        writeSync(fd, header({ name: "PaxHeader", mode: 0o644, size: pax.length, type: "x" }));
+        writeSync(
+          fd,
+          header({
+            name: "PaxHeader",
+            mode: 0o644,
+            size: pax.length,
+            type: "x",
+          }),
+        );
         writeSync(fd, pax);
         writeSync(fd, padding(pax.length));
       }

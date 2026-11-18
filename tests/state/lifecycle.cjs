@@ -11,7 +11,9 @@ async function main() {
   );
   // Exclusive writes expose reused state even when a previous install succeeded.
   for (const directory of scratch) {
-    writeFileSync(join(directory, "acquisition-owner"), identity, { flag: "wx" });
+    writeFileSync(join(directory, "acquisition-owner"), identity, {
+      flag: "wx",
+    });
   }
   if (barrier) {
     // Both installs must hold private state before either is allowed to finish.
@@ -19,7 +21,10 @@ async function main() {
     assert.equal(response.status, 200);
   }
   for (const directory of scratch) {
-    assert.equal(readFileSync(join(directory, "acquisition-owner"), "utf8"), identity);
+    assert.equal(
+      readFileSync(join(directory, "acquisition-owner"), "utf8"),
+      identity,
+    );
   }
   writeFileSync(
     "lifecycle.json",
@@ -28,7 +33,8 @@ async function main() {
       scratch,
       node: process.versions.node,
       bun: execFileSync("bun", ["--version"], { encoding: "utf8" }).trim(),
-      output: transformSync("const answer: number = 42;", { loader: "ts" }).code,
+      output: transformSync("const answer: number = 42;", { loader: "ts" })
+        .code,
     }),
   );
 }

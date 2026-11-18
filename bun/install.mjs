@@ -70,7 +70,9 @@ for (const directory of ["home", "tmp", "cache"])
 // package's own name. An alias and a dependency on the package itself then
 // write the same link, and install threads decide which lands. With aliases
 // kept out, only dependencies declared under a package's own name write it.
-const layout = JSON.parse(readFileSync(join(repository, "layout.json"), "utf8"));
+const layout = JSON.parse(
+  readFileSync(join(repository, "layout.json"), "utf8"),
+);
 // A workspace hoist pattern would replace this one, or this one a bunfig.toml's.
 for (const [path, setting] of [
   [".npmrc", /^\s*hoist-pattern\b/m],
@@ -165,7 +167,9 @@ try {
       },
     );
     child.once("error", failed);
-    child.once("close", (code, killed) => done({ status: code, signal: killed }));
+    child.once("close", (code, killed) =>
+      done({ status: code, signal: killed }),
+    );
   }));
 } finally {
   server.close();
@@ -187,7 +191,9 @@ for (const [path, hash] of Object.entries(before)) {
 }
 const completed = completeCyclicBins(workspace, layout.bins);
 if (completed)
-  console.log(`Dependency bin links Bun left to install timing, added: ${completed}`);
+  console.log(
+    `Dependency bin links Bun left to install timing, added: ${completed}`,
+  );
 
 const entries = [];
 const files = [];

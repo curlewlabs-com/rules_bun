@@ -3,7 +3,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 const repository = resolve(process.argv[2]);
-const request = JSON.parse(readFileSync(join(repository, "request.json"), "utf8"));
+const request = JSON.parse(
+  readFileSync(join(repository, "request.json"), "utf8"),
+);
 // The platform the closure is installed for, which a consumer may execute on a
 // host other than this one.
 const targetOs = request.os || process.platform;
@@ -15,7 +17,11 @@ if (lock === null || typeof lock !== "object" || Array.isArray(lock)) {
   throw new Error("bun.lock is not an object");
 }
 const packages = lock.packages ?? {};
-if (packages === null || typeof packages !== "object" || Array.isArray(packages)) {
+if (
+  packages === null ||
+  typeof packages !== "object" ||
+  Array.isArray(packages)
+) {
   throw new Error("bun.lock packages is not an object");
 }
 
@@ -26,14 +32,17 @@ function admits(constraint, value) {
   if (constraint === undefined) return true;
   const items = typeof constraint === "string" ? [constraint] : constraint;
   if (!Array.isArray(items) || items.some((item) => typeof item !== "string")) {
-    throw new Error(`Unreadable platform constraint: ${JSON.stringify(constraint)}`);
+    throw new Error(
+      `Unreadable platform constraint: ${JSON.stringify(constraint)}`,
+    );
   }
   if (items.includes(`!${value}`)) return false;
   const allowed = items.filter((item) => !item.startsWith("!"));
   return allowed.length === 0 || allowed.includes(value);
 }
 
-const PACKAGE_NAME = /^(@[A-Za-z0-9~-][A-Za-z0-9._~-]*\/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*$/;
+const PACKAGE_NAME =
+  /^(@[A-Za-z0-9~-][A-Za-z0-9._~-]*\/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*$/;
 
 // A lock key is the dependency path to a package, so its last name is the one
 // the dependent declared; for an alias, that differs from the package's name.
@@ -70,7 +79,8 @@ for (const [key, entry] of Object.entries(packages)) {
   const at = spec.lastIndexOf("@");
   const name = spec.slice(0, at);
   const version = spec.slice(at + 1);
-  if (at <= 0 || !name || !version) throw new Error(`Unreadable lock spec: ${spec}`);
+  if (at <= 0 || !name || !version)
+    throw new Error(`Unreadable lock spec: ${spec}`);
   if (version.startsWith("workspace:") && entry.length === 1) continue;
   // Default-registry entries are [spec, "", metadata, integrity]; every other
   // source would reach the network outside Bazel's verified downloads.
@@ -90,17 +100,24 @@ for (const [key, entry] of Object.entries(packages)) {
     );
   }
   // The name and version become a download path, so neither may leave it.
-  if (!PACKAGE_NAME.test(name) || !/^[A-Za-z0-9][A-Za-z0-9.+_-]*$/.test(version)) {
+  if (
+    !PACKAGE_NAME.test(name) ||
+    !/^[A-Za-z0-9][A-Za-z0-9.+_-]*$/.test(version)
+  ) {
     throw new Error(`Unsupported package name or version: ${spec}`);
   }
   // An alias name becomes a line of the installer's Bun configuration.
   const declared = declaredName(key);
-  if (!PACKAGE_NAME.test(declared)) throw new Error(`Unsupported dependency name: ${key}`);
+  if (!PACKAGE_NAME.test(declared))
+    throw new Error(`Unsupported dependency name: ${key}`);
   if (declared !== name) aliases.add(declared);
   const declaration = binDeclaration(spec, metadata);
   if (declaration !== undefined) {
     const previous = bins[spec];
-    if (previous !== undefined && JSON.stringify(previous) !== JSON.stringify(declaration)) {
+    if (
+      previous !== undefined &&
+      JSON.stringify(previous) !== JSON.stringify(declaration)
+    ) {
       throw new Error(`Conflicting bin declarations for ${spec}`);
     }
     bins[spec] = declaration;

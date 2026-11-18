@@ -1,0 +1,5 @@
+# Written by npm_graph's translator (npm/npm_graph.ts) and compared with its
+# output byte for byte by npm_graph's test, so a reformat fails that test and
+# would not survive `bazel run` regenerating the file.
+tests/npm/npm_graph.json
+tests/npm_consumer/npm_graph.json
