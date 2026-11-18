@@ -22,11 +22,10 @@ jobs:
       fail-fast: false
       matrix:
         # Standard public-repository runners avoid metered larger runners.
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15-intel, macos-15]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-26]
     runs-on: ${{ matrix.os }}
-    # Intel macOS runs slowest: the npm fixture's cold units in both
-    # representations took about nine minutes there before bun_install's
-    # checks and the release archive's.
+    # macOS runs slowest: the whole job, the npm fixture's cold units in both
+    # representations included, takes about nine minutes there.
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,15 +59,17 @@ jobs:
       - name: Exercise the published-release example
         run: python3 examples/consumer/run.py
 
-  pre-commit:
+  lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: python3 -m pip install pre-commit==4.3.0
-      - run: pre-commit run --all-files
+      - name: Install the pinned tools
+        run: python3 -m pip install -r requirements-dev.txt
+      - name: mypy (strict)
+        run: mypy
 
   baseline:
     # The checks every Curlew Labs repository runs, in one place:
@@ -79,16 +80,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: curlewlabs-com/ci-baseline@c82082df9a3c5e6dab047d9ddb92f130f1537d8e # v0.1.1
+      - uses: curlewlabs-com/ci-baseline@f05f17a38ba2dfbaf0cde130a375b346e9a923a2 # v0.2.0
 
   conclusion:
-    needs: [integration, pre-commit, baseline]
+    needs: [integration, lint, baseline]
     runs-on: ubuntu-24.04
     if: always()
     steps:
       - name: Require every integration and lint job to pass
         env:
           INTEGRATION: ${{ needs.integration.result }}
-          LINT: ${{ needs.pre-commit.result }}
+          LINT: ${{ needs.lint.result }}
           BASELINE: ${{ needs.baseline.result }}
         run: test "$INTEGRATION" = success && test "$LINT" = success && test "$BASELINE" = success
