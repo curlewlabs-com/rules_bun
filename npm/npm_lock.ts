@@ -114,7 +114,8 @@ function lockPackage(value: unknown, where: string): LockPackage {
   if (value.length === 3 && typeof value[1] === "object") {
     return tarballPackage(spec, value[1], value[2], where);
   }
-  const [, source, fields, integrity] = value;
+  const parts: unknown[] = value;
+  const [, source, fields, integrity] = parts;
   if (source !== "" || value.length !== 4) {
     throw new Error(
       `bun.lock ${where}: only default-registry and https tarball-URL packages are translated, found ${JSON.stringify(value.slice(0, 2))}`,

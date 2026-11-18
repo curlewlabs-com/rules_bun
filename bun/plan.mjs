@@ -1,4 +1,5 @@
 // Runs under the declared Bun so the committed lock is read by Bun's own parser.
+/* global Bun -- the runtime this script is run by, which supplies the lock parser */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
