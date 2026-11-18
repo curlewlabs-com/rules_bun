@@ -1,3 +1,4 @@
 examples/consumer
 tests/state
 tests/npm_consumer
+tools/typecheck/node_modules

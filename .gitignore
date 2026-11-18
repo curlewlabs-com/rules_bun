@@ -2,3 +2,4 @@
 /node_modules/
 /dist/
 __pycache__/
+/tools/typecheck/node_modules/
