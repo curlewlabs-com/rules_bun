@@ -42,6 +42,7 @@ async function main() {
 }
 
 main().catch((error) => {
+  // eslint-disable-next-line no-console -- a failing check reports its error on stderr
   console.error("Acquisition state lifecycle failed:", error);
   process.exitCode = 1;
 });

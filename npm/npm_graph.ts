@@ -60,6 +60,21 @@ function segments(path: string): string[] {
   return out;
 }
 
+// An entry a surrounding invariant guarantees; its absence is a bug here, never
+// an input to translate.
+function present<T>(value: T | undefined): T {
+  if (value === undefined) {
+    throw new Error("internal error: a graph entry that must exist is missing");
+  }
+  return value;
+}
+
+// A record's entry for a key the record may not hold, which its index type
+// does not say.
+function maybe<T>(record: Record<string, T>, key: string): T | undefined {
+  return record[key];
+}
+
 function resolve(
   packages: Record<string, unknown>,
   from: string,
@@ -112,20 +127,26 @@ function cycles(edges: Record<string, string[]>): string[][] {
         if (!index.has(target)) {
           work.push([target, 0]);
         } else if (onStack.has(target)) {
-          low.set(node, Math.min(low.get(node)!, index.get(target)!));
+          low.set(
+            node,
+            Math.min(present(low.get(node)), present(index.get(target))),
+          );
         }
         continue;
       }
       work.pop();
       if (work.length > 0) {
         const parent = work[work.length - 1][0];
-        low.set(parent, Math.min(low.get(parent)!, low.get(node)!));
+        low.set(
+          parent,
+          Math.min(present(low.get(parent)), present(low.get(node))),
+        );
       }
       if (low.get(node) === index.get(node)) {
         const component: string[] = [];
         let member: string;
         do {
-          member = stack.pop()!;
+          member = present(stack.pop());
           onStack.delete(member);
           component.push(member);
         } while (member !== node);
@@ -175,7 +196,7 @@ export function translate(
     if (entry.kind !== "release") continue;
     const { name, version, url, integrity, meta } = entry;
     const repository = repositoryName(name, version);
-    const existing = repositories[repository];
+    const existing = maybe(repositories, repository);
     if (
       existing &&
       (existing.name !== name ||
@@ -316,7 +337,7 @@ export function translate(
     const edges: Record<string, string> = {};
     for (const name of [...Object.keys(entry.deps), ...entry.peers].sort()) {
       if (name in entry.deps) {
-        edges[name] = children(name)!;
+        edges[name] = present(children(name));
         continue;
       }
       let target = bound.get(name);
@@ -413,7 +434,7 @@ export function translate(
     }
     const roots = childLookup(deps, () => undefined);
     const edges: Record<string, string> = { ...local };
-    for (const name of Object.keys(deps)) edges[name] = roots(name)!;
+    for (const name of Object.keys(deps)) edges[name] = present(roots(name));
     workspaces[directory || "."] = Object.fromEntries(
       Object.entries(edges).sort(([a], [b]) => (a < b ? -1 : 1)),
     );
@@ -434,7 +455,7 @@ export function translate(
   for (const edges of Object.values(workspaces)) {
     for (const name of Object.keys(edges)) edges[name] = rename(edges[name]);
   }
-  const sortedPackages: Record<string, GraphPackage> = {};
+  let sortedPackages: Record<string, GraphPackage> = {};
   for (const [id, node] of Object.entries(packages)) {
     const edges = Object.fromEntries(
       Object.entries(node.edges).map(([name, target]) => [
@@ -443,7 +464,7 @@ export function translate(
       ]),
     );
     const merged = { ...node, edges };
-    const existing = sortedPackages[rename(id)];
+    const existing = maybe(sortedPackages, rename(id));
     // The merge's own guarantee, checked where a violation would otherwise
     // overwrite a node: nodes sharing a final id have the same edges.
     if (existing && JSON.stringify(existing) !== JSON.stringify(merged)) {
@@ -464,11 +485,11 @@ export function translate(
     reached.add(id);
     stack.push(...Object.values(sortedPackages[id].edges));
   }
+  const reachedPackages: Record<string, GraphPackage> = {};
   for (const id of Object.keys(sortedPackages).sort()) {
-    const node = sortedPackages[id];
-    delete sortedPackages[id];
-    if (reached.has(id)) sortedPackages[id] = node;
+    if (reached.has(id)) reachedPackages[id] = sortedPackages[id];
   }
+  sortedPackages = reachedPackages;
   for (const path of Object.keys(topLevel))
     topLevel[path] = rename(topLevel[path]);
   const targets: Record<string, string[]> = {};
@@ -575,7 +596,9 @@ export function canonical(
   const rank = (keys: Map<string, string>) => {
     const distinct = [...new Set(keys.values())].sort();
     const index = new Map(distinct.map((key, i) => [key, i]));
-    return new Map(ids.map((id) => [id, index.get(keys.get(id)!)!]));
+    return new Map(
+      ids.map((id) => [id, present(index.get(present(keys.get(id))))]),
+    );
   };
 
   let classOf = rank(
@@ -606,11 +629,12 @@ export function canonical(
   // the partition gives every member the same.
   const membersOf = new Map<number, string[]>();
   for (const id of ids) {
-    const members = membersOf.get(classOf.get(id)!) ?? [];
+    const cls = present(classOf.get(id));
+    const members = membersOf.get(cls) ?? [];
     members.push(id);
-    membersOf.set(classOf.get(id)!, members);
+    membersOf.set(cls, members);
   }
-  const representative = (cls: number) => membersOf.get(cls)![0];
+  const representative = (cls: number) => present(membersOf.get(cls))[0];
 
   const walk = (root: number) => {
     const order = [root];
@@ -619,7 +643,7 @@ export function canonical(
     for (let i = 0; i < order.length; i++) {
       const id = representative(order[i]);
       const edges = sortedEdges(id).map(([name, target]) => {
-        const cls = classOf.get(target)!;
+        const cls = present(classOf.get(target));
         if (!visited.has(cls)) {
           visited.set(cls, order.length);
           order.push(cls);
@@ -648,7 +672,9 @@ export function canonical(
     claimed.set(final, cls);
     finalOf.set(cls, final);
   }
-  return new Map(ids.map((id) => [id, finalOf.get(classOf.get(id)!)!]));
+  return new Map(
+    ids.map((id) => [id, present(finalOf.get(present(classOf.get(id))))]),
+  );
 }
 
 const LIBC_ON_OPTIONAL_EDGES =

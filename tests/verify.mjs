@@ -96,6 +96,7 @@ try {
     );
     assert.match(failed.stderr, /esbuild|ENOENT/);
   }
+  // eslint-disable-next-line no-console -- the check reports its result on stdout
   console.log(
     `Relocated consumer passed under Node and Bun (workspaceOnly=${workspaceOnly}).`,
   );

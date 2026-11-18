@@ -52,7 +52,7 @@ import urllib.parse
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import override
+from typing import TypeGuard, override
 
 REGISTRY = "https://registry.npmjs.org/"
 WORKSPACE = "workspace:"
@@ -77,7 +77,7 @@ class Node:
     # empty one (npm_graph.ts `canonical`).
     metadata: str
     # Bin name to its path inside the package.
-    bin: Mapping[str, str] = field(default_factory=dict)
+    bin: Mapping[str, str] = field(default_factory=dict[str, str])
 
 
 @dataclass(frozen=True)
@@ -92,7 +92,7 @@ class Graph:
     # Package name to the node Bun's store hoists into its fallback directory.
     hoisted: Mapping[str, str]
     # Each URL release's locked URL to its loopback path.
-    locked_urls: Mapping[str, str] = field(default_factory=dict)
+    locked_urls: Mapping[str, str] = field(default_factory=dict[str, str])
 
 
 @dataclass(frozen=True)
@@ -107,16 +107,33 @@ class Store:
     directories: Mapping[str, StoreDirectory]
     workspaces: Mapping[str, Mapping[str, str]]
     # Package name to the store directory `.bun/node_modules` links it to.
-    hoisted: Mapping[str, str] = field(default_factory=dict)
+    hoisted: Mapping[str, str] = field(default_factory=dict[str, str])
     # Each workspace's `.bin` names, each to the store directory of the file
     # it runs.
-    bins: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+    bins: Mapping[str, Mapping[str, str]] = field(
+        default_factory=dict[str, Mapping[str, str]]
+    )
+
+
+# isinstance narrows a decoded `object` to a dict of unknown parameters, which
+# a strict check does not accept; these state what the check established.
+def _is_dict(value: object) -> TypeGuard[dict[object, object]]:
+    return isinstance(value, dict)
+
+
+def _is_list(value: object) -> TypeGuard[list[object]]:
+    return isinstance(value, list)
 
 
 def _object(value: object, place: str) -> dict[str, object]:
-    if not isinstance(value, dict) or not all(isinstance(k, str) for k in value):
-        raise TypeError(f"{place}: expected an object")
-    return dict(value)
+    if _is_dict(value):
+        members: dict[str, object] = {}
+        for key, member in value.items():
+            if not isinstance(key, str):
+                raise TypeError(f"{place}: expected an object")
+            members[key] = member
+        return members
+    raise TypeError(f"{place}: expected an object")
 
 
 def _string(value: object, place: str) -> str:
@@ -128,9 +145,9 @@ def _string(value: object, place: str) -> str:
 def _strings(value: object, place: str) -> tuple[str, ...]:
     if value is None:
         return ()
-    if not isinstance(value, list):
-        raise TypeError(f"{place}: expected a list")
-    return tuple(_string(item, f"{place}[]") for item in value)
+    if _is_list(value):
+        return tuple(_string(item, f"{place}[]") for item in value)
+    raise TypeError(f"{place}: expected a list")
 
 
 def _string_map(value: object, place: str) -> dict[str, str]:
@@ -693,7 +710,7 @@ def compare(store: Store, graph: Graph, os_name: str, cpu: str) -> list[str]:
         for name, linked in sorted(store.bins[workspace].items()):
             bin_dependency = owners[workspace].get(name)
             bin_node = graph.workspaces[workspace].get(bin_dependency or "")
-            releases = (
+            releases: set[str] = (
                 {graph.nodes[bin_node].release}
                 | {
                     graph.nodes[edge].release

@@ -75,8 +75,8 @@ def check_runtime_independence(
     """Hosts on different platforms acquire the same closure with their own
     runtime binaries. Anything in :files that records which would key every
     action reading the closure by the host that acquired it."""
-    files = []
-    recorded = []
+    files: list[dict[str, str]] = []
+    recorded: list[dict[str, str]] = []
     for name in ["test_npm", "test_other_runtimes"]:
         exports = exported(command, root, f"@{name}//:files")
         files.append({path: digest(file) for path, file in exports.items()})
@@ -118,7 +118,7 @@ def check_archive(command: list[str], root: Path, node: Path) -> None:
     with tempfile.TemporaryDirectory() as scratch:
         tree = Path(scratch)
         subprocess.run(["tar", "-xf", str(archive), "-C", str(tree)], check=True)
-        described = set()
+        described: set[str] = set()
         for entry in closure["entries"]:
             path = tree / entry["path"]
             described.add(entry["path"])

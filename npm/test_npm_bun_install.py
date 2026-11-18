@@ -239,11 +239,12 @@ class CompareTest(unittest.TestCase):
         # The translator merges on bin and on whether os, cpu or libc is
         # present at all, not only on edges, so nodes differing there alone
         # are no missed merge even when they match one Bun directory.
-        for name, extra in (
+        cases: tuple[tuple[str, dict[str, object]], ...] = (
             ("bin", {"bin": {"opt": "cli.js"}}),
             ("empty os", {"os": []}),
             ("empty libc", {"libc": []}),
-        ):
+        )
+        for name, extra in cases:
             with self.subTest(name):
                 packages = copy.deepcopy(_PACKAGES)
                 packages["opt@1+a"] = {"repository": "opt@1", "edges": {}}

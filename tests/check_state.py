@@ -144,7 +144,7 @@ def concurrent_acquisitions(
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=len(directories)
         ) as pool:
-            futures = []
+            futures: list[concurrent.futures.Future[Lifecycle]] = []
             try:
                 for directory in directories:
                     state(directory, directory.name, address)
