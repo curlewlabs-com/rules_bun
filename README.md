@@ -220,9 +220,15 @@ Remaining readiness work is tracked in
 
 ## Licensing and prior work
 
-This ruleset is original code under the [MIT license](LICENSE). No runtime or
-npm package binaries are vendored. Downloaded artifacts retain their own
-licenses; the ruleset's license does not relicense them.
+This ruleset is original code licensed under either of the
+[Apache License, Version 2.0](LICENSE-APACHE) or the
+[MIT license](LICENSE-MIT), at your option. Releases published under the MIT
+license alone may also be used under either license. No runtime or npm package
+binaries are vendored. Downloaded artifacts retain their own licenses; the
+ruleset's license does not relicense them.
+
+By submitting a contribution for inclusion in this project, you agree that it
+is dual licensed as above, without any additional terms or conditions.
 
 The integration example uses Apache-2.0 licensed
 [rules_nodejs](https://github.com/bazel-contrib/rules_nodejs/blob/v6.7.5/LICENSE),
