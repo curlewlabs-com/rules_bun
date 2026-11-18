@@ -472,7 +472,8 @@ def read_store(
 
 def expected_bins(graph: Graph, installed: set[str]) -> dict[str, dict[str, str]]:
     """Each workspace's `.bin` names as the npm hub links them: a name two
-    dependencies declare goes to the one whose name sorts first."""
+    dependencies declare goes to the one this host installs whose name sorts
+    first."""
     bins: dict[str, dict[str, str]] = {}
     for workspace, edges in graph.workspaces.items():
         owners: dict[str, str] = {}

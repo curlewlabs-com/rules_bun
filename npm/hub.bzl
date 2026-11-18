@@ -8,6 +8,61 @@ function of checked-in files alone.
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 load(":platforms.bzl", "NPM_PLATFORMS", "npm_platform_allows")
 
+def _admits(platform, package):
+    return npm_platform_allows(platform, package.get("os", []), package.get("cpu", []), package.get("libc", []))
+
+def _cycle_reached(packages, members):
+    """What each cycle member reaches of its cycle on each platform, by Bun's walk.
+
+    Args:
+      packages: the graph's nodes.
+      members: the cycle's members, sorted.
+
+    Returns:
+      Each member to each NPM_PLATFORMS name to the members, sorted, that the
+      walk from it reaches through members the platform admits: an edge to an
+      excluded member reaches that member's record, and no further.
+    """
+    reached = {}
+    for entry in members:
+        reached[entry] = {}
+        for platform in NPM_PLATFORMS:
+            seen = {entry: True}
+            queue = [entry] if _admits(platform, packages[entry]) else []
+
+            # Each member is queued once, so the walk takes at most one pass
+            # per member; Starlark has no while loop.
+            for _ in members:
+                if not queue:
+                    break
+                node = queue.pop(0)
+                for target in packages[node]["edges"].values():
+                    if target in seen or packages[target].get("cycle") != packages[entry]["cycle"]:
+                        continue
+                    seen[target] = True
+                    if _admits(platform, packages[target]):
+                        queue.append(target)
+            reached[entry][platform.name] = sorted(seen)
+    return reached
+
+def _per_platform(values, decided = None):
+    """An attribute's value: one value where every deciding platform agrees, else a select by platform.
+
+    Args:
+      values: each NPM_PLATFORMS name to the attribute's value there.
+      decided: the platform names whose value matters, every one when None.
+
+    Returns:
+      The value's Starlark source.
+    """
+    distinct = {json.encode(value): value for name, value in values.items() if decided == None or name in decided}
+    if len(distinct) == 1:
+        return json.encode(distinct.values()[0])
+    return "select(%s)" % json.encode({
+        str(Label("//npm:" + name)): value
+        for name, value in sorted(values.items())
+    })
+
 def _npm_hub_impl(rctx):
     graph = json.decode(rctx.read(rctx.attr.graph))
     packages = graph["packages"]
@@ -143,15 +198,31 @@ def _npm_hub_impl(rctx):
             lines.append('    visibility = ["//visibility:private"],')
         lines.append(")")
     for head, members in sorted(cycles.items()):
-        lines.append("")
-        lines.append("npm_package_cycle(")
-        lines.append("    name = %r," % ("_cycle/" + head))
-        lines.append("    members = %s," % json.encode([":_cycle_member/" + member for member in sorted(members)]))
-        lines.append('    visibility = ["//visibility:private"],')
-        lines.append(")")
+        reached = _cycle_reached(packages, sorted(members))
+
+        # One group serves every member while each reaches the whole cycle on
+        # every platform. A member a platform excludes ends Bun's walk there,
+        # so where one does, each member gets the group of what it reaches.
+        whole = sorted(members)
+        if all([by_platform == whole for entry in reached.values() for by_platform in entry.values()]):
+            groups = {head: {platform.name: whole for platform in NPM_PLATFORMS}}
+            entries = {member: head for member in members}
+        else:
+            groups = reached
+            entries = {member: member for member in members}
+        for group, by_platform in sorted(groups.items()):
+            lines.append("")
+            lines.append("npm_package_cycle(")
+            lines.append("    name = %r," % ("_cycle/" + group))
+            lines.append("    members = %s," % _per_platform({
+                platform: [":_cycle_member/" + member for member in reached_members]
+                for platform, reached_members in by_platform.items()
+            }))
+            lines.append('    visibility = ["//visibility:private"],')
+            lines.append(")")
         for member in sorted(members):
             lines.append("")
-            lines.append('alias(name = %r, actual = ":_cycle/%s")' % (member, head))
+            lines.append('alias(name = %r, actual = ":_cycle/%s")' % (member, entries[member]))
 
     # What each workspace links under each dependency name, by the path Node
     # would find it at, so a consumer names a tool without naming its version.
@@ -160,13 +231,16 @@ def _npm_hub_impl(rctx):
 
         # Two dependencies can name one bin, as an `npm:` alias of a package
         # the workspace also depends on does. Bun links the name to the
-        # dependency whose name sorts first, so each bin is that one's alone,
-        # and npm_bun_install_test compares the choice with Bun's.
+        # dependency whose name sorts first among those the platform installs,
+        # so each bin is that one's alone there, and npm_bun_install_test
+        # compares the choice with Bun's.
         owners = {}
-        for dependency, target in sorted(edges.items()):
-            if not target.startswith("workspace:"):
-                for name in sorted(packages[target].get("bin", {})):
-                    owners.setdefault(name, dependency)
+        for platform in NPM_PLATFORMS:
+            owners[platform.name] = {}
+            for dependency, target in sorted(edges.items()):
+                if not target.startswith("workspace:") and _admits(platform, packages[target]):
+                    for name in sorted(packages[target].get("bin", {})):
+                        owners[platform.name].setdefault(name, dependency)
         for dependency, target in edges.items():
             if target.startswith("workspace:"):
                 continue
@@ -186,9 +260,18 @@ def _npm_hub_impl(rctx):
             for attribute in ("os", "cpu", "libc"):
                 if package.get(attribute):
                     lines.append("    %s = %s," % (attribute, json.encode(package[attribute])))
-            bins = {name: path for name, path in package.get("bin", {}).items() if owners[name] == dependency}
-            if bins:
-                lines.append("    bin = %s," % json.encode(bins))
+            bins = {
+                platform.name: {name: path for name, path in package.get("bin", {}).items() if owners[platform.name].get(name) == dependency}
+                for platform in NPM_PLATFORMS
+                if _admits(platform, package)
+            }
+            if any(bins.values()):
+                # npm_link links nothing where the platform excludes its
+                # package, so only the platforms that admit it decide.
+                lines.append("    bin = %s," % _per_platform({
+                    platform.name: bins.get(platform.name, {})
+                    for platform in NPM_PLATFORMS
+                }, decided = bins.keys()))
             lines.append(")")
     rctx.file("BUILD.bazel", "\n".join(lines) + "\n")
 

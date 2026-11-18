@@ -6,7 +6,8 @@ the directory holding the `node_modules` remark-cli is in), so the tree holds
 every link those targets add. Its units are the nodes they reach, each at its
 store path, and its links are each node's edges, beside its unit, plus the
 npm_links' own (docs/npm.md sec."Linked trees"). A node whose os, cpu or libc
-excludes the platform is left out, with every edge to it, as Bun skips it.
+excludes the platform is left out, with every edge to it and everything only it
+reaches, as Bun skips it.
 
 Per-file, the tree is the links and units the npm_link targets declare, laid
 out in an action's input root or a program's runfiles. Where units are

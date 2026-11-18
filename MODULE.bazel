@@ -46,3 +46,8 @@ npm.graph(
     graph = "//tests/npm:npm_graph.json",
 )
 use_repo(npm, "npm")
+
+# A hub over a graph written by hand (tests/npm/platform_excluded), for the
+# platform-excluded shapes no fixture lock has.
+platform_excluded = use_extension("//tests/npm/platform_excluded:hub.bzl", "hub", dev_dependency = True)
+use_repo(platform_excluded, "npm_platform_excluded")

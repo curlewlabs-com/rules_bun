@@ -1,0 +1,41 @@
+load("@rules_python//python:py_binary.bzl", "py_binary")
+load("//npm:defs.bzl", "npm_graph_test", "npm_tree_test")
+
+# npm_graph.json is written by hand, not translated from a lock: its os, cpu,
+# bin, edges and cycle are chosen to put a node each platform excludes in
+# front of what only it reaches, of a bin another dependency also declares,
+# and inside a dependency cycle. Its releases are real ones the fixture lock
+# also locks, so each unit is a real tarball checked against its integrity.
+# platform_excluded_test.py says which node each platform admits.
+exports_files(["npm_graph.json"])
+
+_LINKS = [
+    "@npm_platform_excluded//:node_modules/a-tool",
+    "@npm_platform_excluded//:node_modules/b-tool",
+    "@npm_platform_excluded//:node_modules/c-tool",
+    "@npm_platform_excluded//:node_modules/d-cycle",
+    "@npm_platform_excluded//:node_modules/e-cycle-linux",
+]
+
+# Every edge of a node the platform admits resolves, though an excluded node's
+# edges are no longer reached.
+npm_graph_test(
+    name = "npm_graph_targets_test",
+    size = "small",
+    packages = _LINKS,
+)
+
+py_binary(
+    name = "platform_excluded_runner",
+    testonly = True,
+    srcs = ["platform_excluded_test.py"],
+    legacy_create_init = 0,
+    main = "platform_excluded_test.py",
+)
+
+npm_tree_test(
+    name = "platform_excluded_tree_test",
+    size = "small",
+    links = _LINKS,
+    test = ":platform_excluded_runner",
+)
