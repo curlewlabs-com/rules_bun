@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
-  integration:
+  integration-test:
     name: Integration (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -71,6 +71,34 @@ jobs:
       - name: mypy (strict)
         run: mypy
 
+  typecheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The type check has a package of its own: the root package.json and
+    # bun.lock are the workspace the acquisition tests install.
+    defaults:
+      run:
+        working-directory: tools/typecheck
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
+        with:
+          bazelisk-cache: false
+          disk-cache: false
+          repository-cache: false
+          cache-save: false
+      # The Bun the tests acquire with, so the check needs no second Bun pin.
+      - name: Put the tests' Bun on PATH
+        run: |
+          bazel build @test_bun//:bun
+          bun="$(bazel info output_base)/$(bazel cquery @test_bun//:bun --output=files)"
+          dirname "$bun" >> "$GITHUB_PATH"
+      - run: bun install --frozen-lockfile
+      - name: tsc --noEmit
+        run: bun run typecheck
+
   baseline:
     # The checks every Curlew Labs repository runs, in one place:
     # https://github.com/curlewlabs-com/ci-baseline
@@ -83,13 +111,14 @@ jobs:
       - uses: curlewlabs-com/ci-baseline@f05f17a38ba2dfbaf0cde130a375b346e9a923a2 # v0.2.0
 
   conclusion:
-    needs: [integration, lint, baseline]
+    needs: [integration-test, lint, typecheck, baseline]
     runs-on: ubuntu-24.04
     if: always()
     steps:
       - name: Require every integration and lint job to pass
         env:
-          INTEGRATION: ${{ needs.integration.result }}
+          INTEGRATION: ${{ needs.integration-test.result }}
           LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
           BASELINE: ${{ needs.baseline.result }}
-        run: test "$INTEGRATION" = success && test "$LINT" = success && test "$BASELINE" = success
+        run: test "$INTEGRATION" = success && test "$LINT" = success && test "$TYPECHECK" = success && test "$BASELINE" = success

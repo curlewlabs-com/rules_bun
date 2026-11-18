@@ -43,13 +43,19 @@ Fixed version tags and published release artifacts must not be replaced.
 ```sh
 python3 -m pip install -r requirements-dev.txt
 mypy
+(cd tools/typecheck && bun install --frozen-lockfile && bun run typecheck)
 bazel build //bun:api_docs //docs:api
 python3 tests/check.py
 python3 tests/check_consumer.py
 python3 tests/check_state.py
 ```
 
-`requirements-dev.txt` pins mypy and everything it installs. Formatting and
+`requirements-dev.txt` pins mypy and everything it installs.
+`tools/typecheck` type-checks the npm rules' TypeScript with tsc; it is a
+package of its own because the root `package.json` and `bun.lock` are the
+workspace the acquisition tests install. Its pins move with
+`bun add --dev --exact` there, which rewrites its `bun.lock`; keep `@types/bun`
+at the Bun release `tests/deps.bzl` pins. Formatting and
 linting (ruff, buildifier, shfmt, prettier, shellcheck, actionlint) run in CI's
 `baseline` job, from [ci-baseline](https://github.com/curlewlabs-com/ci-baseline).
 
