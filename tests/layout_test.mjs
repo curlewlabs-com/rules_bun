@@ -3,9 +3,12 @@
 // install timing, so a real install cannot be made to take the losing branch.
 import assert from "node:assert/strict";
 import {
+  closeSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
   readFileSync,
   readlinkSync,
   rmSync,
@@ -61,8 +64,17 @@ test("a cycle's skipped bin is linked as Bun links it", (t) => {
   assert.equal(readlinkSync(link), "../tool/cli.js");
   const file = join(layout.modules("tool@1.0.0"), "tool", "cli.js");
   // Bun's linker leaves the bin executable and its shebang without a carriage return.
-  assert.equal(lstatSync(file).mode & 0o111, 0o111);
-  assert.equal(readFileSync(file, "utf8"), "#!/usr/bin/env node\nrun();\r\n");
+  // One descriptor for both reads, so the mode and the bytes are one file's.
+  const descriptor = openSync(file, "r");
+  try {
+    assert.equal(fstatSync(descriptor).mode & 0o111, 0o111);
+    assert.equal(
+      readFileSync(descriptor, "utf8"),
+      "#!/usr/bin/env node\nrun();\r\n",
+    );
+  } finally {
+    closeSync(descriptor);
+  }
 });
 
 test("a dependency outside a cycle keeps the links Bun gave it", (t) => {
