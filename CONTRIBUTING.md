@@ -117,3 +117,10 @@ after the draft's own checks.
 
 BCR metadata, presubmit configuration, and publishing automation belong to the
 separate future [issue #4](https://github.com/curlewlabs-com/rules_bun/issues/4).
+
+## License
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this project by you, as defined in the Apache-2.0 license,
+shall be dual licensed under the MIT and Apache-2.0 licenses, as the README's
+License section describes, without any additional terms or conditions.
