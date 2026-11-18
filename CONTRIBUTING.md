@@ -40,16 +40,18 @@ Fixed version tags and published release artifacts must not be replaced.
 
 ## Local checks
 
-Install `pre-commit==4.3.0`, then run:
-
 ```sh
-pre-commit install
-pre-commit run --all-files
+python3 -m pip install -r requirements-dev.txt
+mypy
 bazel build //bun:api_docs //docs:api
 python3 tests/check.py
 python3 tests/check_consumer.py
 python3 tests/check_state.py
 ```
+
+`requirements-dev.txt` pins mypy and everything it installs. Formatting and
+linting (ruff, buildifier, shfmt, prettier, shellcheck, actionlint) run in CI's
+`baseline` job, from [ci-baseline](https://github.com/curlewlabs-com/ci-baseline).
 
 The archive check packages committed `HEAD`, so commit the candidate before
 using its result as release evidence. The independent consumer README also
@@ -90,8 +92,8 @@ Bazel rewrites the host's entries on its next run. The older runtimes in
 and [rules-template](https://github.com/bazel-contrib/rules-template) are the
 baseline for repository layout, contribution tooling, documentation extraction,
 and CI. This repository uses the template's separation between ruleset checks
-and a nested independent consumer, buildifier through pre-commit, and a stable
-CI conclusion job. `.bazelignore` keeps the consumer module out of root target
+and a nested independent consumer, buildifier in CI, and a stable CI
+conclusion job. `.bazelignore` keeps the consumer module out of root target
 traversal.
 
 The adaptations reflect this ruleset's scope:

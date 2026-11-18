@@ -67,6 +67,9 @@ test("the system tar expands the archive to the described tree", (t) => {
   assert.equal(readlinkSync(join(out, "node_modules/link")), ".bin/tool");
   assert.equal(readlinkSync(join(out, "node_modules/long-link")), longTarget);
   assert.equal(readFileSync(join(out, deep), "utf8"), "module.exports = 1;\n");
-  assert.equal(lstatSync(join(out, "node_modules/.bin/tool")).mode & 0o111, 0o111);
+  assert.equal(
+    lstatSync(join(out, "node_modules/.bin/tool")).mode & 0o111,
+    0o111,
+  );
   assert.equal(lstatSync(join(out, "package.json")).mode & 0o111, 0);
 });

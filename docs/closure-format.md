@@ -11,25 +11,25 @@ what each one changed. JSON object key order, whitespace, entry order, and
 diagnostic text are not part of the contract. SHA-256 values are lowercase
 hexadecimal digests of the referenced bytes.
 
-| Field | Meaning |
-| --- | --- |
-| `format` | Format identifier; reject an unsupported value before restoration. |
-| `installer` | SHA-256 of the installer JavaScript used for acquisition. |
-| `planner` | SHA-256 of the JavaScript that lists the lock's registry tarballs. |
-| `layout` | SHA-256 of the JavaScript that settles the parts of Bun's layout install timing decides. |
-| `inputs` | Object mapping declared workspace-relative input paths to their SHA-256 values. |
-| `workspaces` | Selected workspace directories; `.` selects the root dependencies. |
-| `entries` | Workspace entries to restore, including installation inputs and lifecycle outputs. |
+| Field        | Meaning                                                                                  |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| `format`     | Format identifier; reject an unsupported value before restoration.                       |
+| `installer`  | SHA-256 of the installer JavaScript used for acquisition.                                |
+| `planner`    | SHA-256 of the JavaScript that lists the lock's registry tarballs.                       |
+| `layout`     | SHA-256 of the JavaScript that settles the parts of Bun's layout install timing decides. |
+| `inputs`     | Object mapping declared workspace-relative input paths to their SHA-256 values.          |
+| `workspaces` | Selected workspace directories; `.` selects the root dependencies.                       |
+| `entries`    | Workspace entries to restore, including installation inputs and lifecycle outputs.       |
 
 Every entry has a `path` relative to the workspace root. Paths use `/`, have
 no leading slash, and do not contain empty, `.` or `..` components. The root
 directory itself has no entry. Entry variants are:
 
-| Shape | Restoration semantics |
-| --- | --- |
+| Shape                          | Restoration semantics                                                                                                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `path`, `sha256`, `executable` | Regular file. Read bytes from `workspace/<path>` in the exported payload; see below for when to verify their digest. Restore read-only, retaining executability when the boolean is true. |
-| `path`, `directory: true` | Directory. Create it before entries that need it. Directory timestamps and permission bits are not carried. |
-| `path`, `symlink` | Symbolic link. The string is a relative target interpreted from the link's parent directory, not from the workspace root. |
+| `path`, `directory: true`      | Directory. Create it before entries that need it. Directory timestamps and permission bits are not carried.                                                                               |
+| `path`, `symlink`              | Symbolic link. The string is a relative target interpreted from the link's parent directory, not from the workspace root.                                                                 |
 
 Acquisition rejects links whose resolved destination escapes the workspace or
 does not exist, and rejects absolute targets. A relative target can contain
@@ -97,7 +97,7 @@ execution runtimes separately.
 
 ## Format history
 
-| Format | Change |
-| --- | --- |
-| `1` | Initial format. `closure.json` also carried the runtime digests, as a `tools` field holding what `tools.json` now holds. |
-| `2` | The runtime digests moved to `tools.json`; every other field is unchanged. A reader that does not use them can accept both. |
+| Format | Change                                                                                                                      |
+| ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `1`    | Initial format. `closure.json` also carried the runtime digests, as a `tools` field holding what `tools.json` now holds.    |
+| `2`    | The runtime digests moved to `tools.json`; every other field is unchanged. A reader that does not use them can accept both. |

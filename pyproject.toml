@@ -1,0 +1,22 @@
+# Configuration for the development tools only; the module is built by Bazel.
+
+[tool.ruff]
+# The checks run under the runner's python3, 3.12 on the Ubuntu image.
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+# Directories holding a module of their own are listed by file, since each
+# also holds that module's Bazel output links.
+files = [
+  "examples/consumer/*.py",
+  "npm",
+  "tests/*.py",
+  "tests/npm",
+  "tests/npm_consumer/*.py",
+  "tools",
+]
