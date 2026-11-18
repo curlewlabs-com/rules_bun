@@ -59,6 +59,10 @@ at the Bun release `tests/deps.bzl` pins. Formatting and
 linting (ruff, buildifier, shfmt, prettier, shellcheck, actionlint) run in CI's
 `baseline` job, from [ci-baseline](https://github.com/curlewlabs-com/ci-baseline).
 
+eslint runs in CI through ci-baseline. To run the same check locally, after
+installing dependencies: `<a ci-baseline checkout>/lib/lint-local.sh`. It runs
+the ci-baseline commit this repository's workflows pin.
+
 The archive check packages committed `HEAD`, so commit the candidate before
 using its result as release evidence. The independent consumer README also
 describes verification of a prepared archive. Network access is required for

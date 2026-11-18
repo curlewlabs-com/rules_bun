@@ -98,6 +98,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: tsc --noEmit
         run: bun run typecheck
+      - uses: curlewlabs-com/ci-baseline/typed@6a09b1b1ebea0453f9a34fce974610ef2544ec3a # v0.3.0
 
   baseline:
     # The checks every Curlew Labs repository runs, in one place:
@@ -108,7 +109,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: curlewlabs-com/ci-baseline@f05f17a38ba2dfbaf0cde130a375b346e9a923a2 # v0.2.0
+      - uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
+        with:
+          bazelisk-cache: false
+          disk-cache: false
+          repository-cache: false
+          cache-save: false
+      # npm/npm_tarball.py imports rules_archive_store's libraries, which Bazel
+      # puts on the path from that module's repository and the repository does
+      # not track. pyright resolves them from the fetched repository.
+      - name: Fetch rules_archive_store
+        id: archive-store
+        run: |
+          bazel fetch --repo=@curlewlabs_rules_archive_store
+          echo "path=$(bazel info output_base)/external/curlewlabs_rules_archive_store+/archive_store" >> "$GITHUB_OUTPUT"
+      - uses: curlewlabs-com/ci-baseline@6a09b1b1ebea0453f9a34fce974610ef2544ec3a # v0.3.0
+        with:
+          python-search-paths: ${{ steps.archive-store.outputs.path }}
 
   conclusion:
     needs: [integration-test, lint, typecheck, baseline]
