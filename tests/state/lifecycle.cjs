@@ -17,6 +17,8 @@ async function main() {
   }
   if (barrier) {
     // Both installs must hold private state before either is allowed to finish.
+    // The URL comes from state.json, which tests/check_state.py writes to name
+    // its own loopback barrier server; that request is the point of the test.
     const response = await fetch(`${barrier}/${identity}`);
     assert.equal(response.status, 200);
   }
