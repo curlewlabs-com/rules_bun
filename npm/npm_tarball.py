@@ -35,6 +35,7 @@ import stat
 import tarfile
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 # rules_archive_store's libraries, which Bazel puts on the path from that
 # module's repository. A type check outside Bazel does not find them, and a
@@ -48,8 +49,8 @@ from archive_parts import (  # type: ignore[import-untyped, import-not-found, un
 from archive_to_tar import (  # type: ignore[import-untyped, import-not-found, unused-ignore]
     ArchiveError,
     Member,
-    checked_tar_members,
-    tar_contents,
+    checked_tar_members,  # pyright: ignore[reportUnknownVariableType] -- the module's own imports do not resolve from its search-path directory, so its signatures read as unknown
+    tar_contents,  # pyright: ignore[reportUnknownVariableType] -- as for checked_tar_members
 )
 
 INSTALL_SCRIPTS = ("preinstall", "install", "postinstall")
@@ -100,7 +101,9 @@ def install_steps(tarball: Path) -> dict[str, str]:
                 manifest = stream.read()
     if manifest is None:
         raise TarballError(f"{tarball} holds no package.json at its root")
-    scripts = json.loads(manifest).get("scripts") or {}
+    # A manifest is whatever JSON the tarball holds; a shape other than an object
+    # of scripts still fails here, as before, rather than being skipped.
+    scripts: Any = json.loads(manifest).get("scripts") or {}
     for script in INSTALL_SCRIPTS:
         command = scripts.get(script)
         if isinstance(command, str):
