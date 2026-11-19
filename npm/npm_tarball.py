@@ -49,8 +49,8 @@ from archive_parts import (  # type: ignore[import-untyped, import-not-found, un
 from archive_to_tar import (  # type: ignore[import-untyped, import-not-found, unused-ignore]
     ArchiveError,
     Member,
-    checked_tar_members,  # pyright: ignore[reportUnknownVariableType] -- the module's own imports do not resolve from its search-path directory, so its signatures read as unknown
-    tar_contents,  # pyright: ignore[reportUnknownVariableType] -- as for checked_tar_members
+    checked_tar_members,
+    tar_contents,
 )
 
 INSTALL_SCRIPTS = ("preinstall", "install", "postinstall")
@@ -101,8 +101,10 @@ def install_steps(tarball: Path) -> dict[str, str]:
                 manifest = stream.read()
     if manifest is None:
         raise TarballError(f"{tarball} holds no package.json at its root")
-    # A manifest is whatever JSON the tarball holds; a shape other than an object
-    # of scripts still fails here, as before, rather than being skipped.
+    # A manifest is whatever JSON the tarball holds, so `scripts` keeps
+    # json.loads's Any: a shape other than an object of scripts fails here, on
+    # the attribute it lacks, rather than being skipped. A narrower type would
+    # claim a shape nothing checks, and checking it would change that failure.
     scripts: Any = json.loads(manifest).get("scripts") or {}
     for script in INSTALL_SCRIPTS:
         command = scripts.get(script)
