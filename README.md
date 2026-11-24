@@ -16,7 +16,7 @@ Central Registry. It does not provide an execution sandbox.
 ## Versions
 
 The current ruleset version is **0.11.3**. The current development toolchain is
-**Bazel 9.3.2**, **Bun 1.4.4**, and **Node 24.22.2**. The pins live in
+**Bazel 9.3.2**, **Bun 1.4.4**, and **Node 24.22.3**. The pins live in
 [.bazelversion](.bazelversion), [tests/deps.bzl](tests/deps.bzl), and
 [MODULE.bazel](MODULE.bazel). These are the current selections, not a broader
 compatibility guarantee. The [compatibility policy](docs/compatibility.md)
@@ -237,7 +237,7 @@ and MIT licensed
 [is-number](https://github.com/jonschlinkert/is-number/blob/7.0.0/LICENSE).
 [Bun's license notice](https://github.com/oven-sh/bun/blob/bun-v1.4.4/LICENSE.md)
 distinguishes its MIT code from its bundled LGPL libraries. Node's release
-[license file](https://github.com/nodejs/node/blob/v24.22.2/LICENSE) includes
+[license file](https://github.com/nodejs/node/blob/v24.22.3/LICENSE) includes
 the notices for its bundled libraries.
 
 Bazel's [distribution guidance](https://bazel.build/rules/deploying) governs the
