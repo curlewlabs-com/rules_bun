@@ -15,7 +15,7 @@ repository rule instead. The two are independent; a module can use either.
 ```starlark
 # MODULE.bazel
 bazel_dep(name = "curlewlabs_rules_bun", version = "<version>")
-bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.1.1")
+bazel_dep(name = "curlewlabs_rules_archive_store", version = "0.6.0")
 
 # Neither module is in the Bazel Central Registry, and an override binds only
 # the root module, so the root declares both: rules_bun's from its release
@@ -212,10 +212,13 @@ the consumer does not reach changes nothing in its tree.
 Load from [`@curlewlabs_rules_bun//npm:defs.bzl`](../npm/defs.bzl).
 
 - **An action** that runs a tool from a tree names the workspace links as an
-  exec-configured attribute, adds `NPM_TREE_ATTRS` to its rule's attributes,
-  and prepares the action with `npm_tool_tree`, which takes the representation
-  from the links. The command reads the tree's root, where `node_modules` sits
-  for the root workspace, at the `path` it returns.
+  exec-configured attribute and prepares the action with `npm_tool_tree`, which
+  takes the representation from the links. For archive trees, add rule
+  attributes with `archive_tree_attrs` from
+  `@curlewlabs_rules_archive_store//archive_store:archives.bzl`, passing a
+  label for the Bun executable that mounts the tree. The command reads the
+  tree's root, where `node_modules` sits for the root workspace, at the
+  `path` it returns.
 - **A test** takes its tree through `npm_tree_test`, which puts it at
   `$ARCHIVE_MOUNT_ROOT/tree` in either representation. A `bazel run` binary takes
   it through `npm_tree_binary` at the same path, in a root its launcher makes and

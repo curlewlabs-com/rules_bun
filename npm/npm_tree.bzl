@@ -107,7 +107,7 @@ def npm_tool_tree(ctx, name, links, command):
     `<workspace>/` for another.
 
     Args:
-      ctx: the rule context; the rule's attrs include NPM_TREE_ATTRS.
+      ctx: the rule context, with attributes from rules_archive_store's archive_tree_attrs for archive trees.
       name: distinguishes this action's tree among the target's actions.
       links: npm_link targets, configured for the platform the action runs on.
       command: FilesToRunProvider of the tool the action runs.

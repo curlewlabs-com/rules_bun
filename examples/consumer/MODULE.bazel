@@ -25,7 +25,7 @@ archive_override(
 # either, and an override binds only the root module (docs/npm.md sec."Setup").
 archive_override(
     module_name = "curlewlabs_rules_archive_store",
-    integrity = "sha256-J4fNThu8NZOrf5gfLJsDfg10pF6NwTbofs7IuvOvPLw=",
-    strip_prefix = "rules_archive_store-0.1.1",
-    urls = ["https://github.com/curlewlabs-com/rules_archive_store/releases/download/v0.1.1/rules_archive_store-0.1.1.tar.gz"],
+    integrity = "sha256-b4s2vanHbhaJXwTiiZ3Zc7W66+XckLqCX7o9ReG908U=",
+    strip_prefix = "rules_archive_store-0.6.0",
+    urls = ["https://github.com/curlewlabs-com/rules_archive_store/releases/download/v0.6.0/rules_archive_store-0.6.0.tar.gz"],
 )
